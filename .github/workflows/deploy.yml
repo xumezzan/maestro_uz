@@ -18,15 +18,7 @@ jobs:
           script: |
             cd app
             git pull
-            # Create/Update .env if needed (optional, usually .env is manually managed on server)
-            # but we can ensure it exists
-            
-            # Rebuild and restart containers
             docker compose down
             docker compose up --build -d
-            
-            # Run migrations (safe to run multiple times)
             docker compose exec -T backend python manage.py migrate
-            
-            # Collect static files
             docker compose exec -T backend python manage.py collectstatic --noinput
