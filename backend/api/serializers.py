@@ -14,7 +14,8 @@ class SpecialistProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = SpecialistProfile
         fields = ['id', 'name', 'category', 'rating', 'reviews_count', 'location', 
-                  'price_start', 'avatarUrl', 'description', 'is_verified', 'tags', 'telegram', 'instagram']
+                  'price_start', 'avatarUrl', 'description', 'is_verified', 'tags', 
+                  'passport_image', 'profile_image', 'telegram', 'instagram']
 
 class TaskResponseSerializer(serializers.ModelSerializer):
     specialistName = serializers.CharField(source='specialist.user.get_full_name', read_only=True)
@@ -33,3 +34,22 @@ class TaskSerializer(serializers.ModelSerializer):
         model = Task
         fields = ['id', 'client', 'title', 'description', 'category', 'budget', 
                   'location', 'date_info', 'status', 'created_at', 'responses_count']
+
+class RegisterSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True)
+    role = serializers.ChoiceField(choices=User.Role.choices, default='client')
+
+    class Meta:
+        model = User
+        fields = ['username', 'email', 'password', 'first_name', 'last_name', 'role']
+
+    def create(self, validated_data):
+        user = User.objects.create_user(
+            username=validated_data['username'],
+            email=validated_data['email'],
+            password=validated_data['password'],
+            first_name=validated_data.get('first_name', ''),
+            last_name=validated_data.get('last_name', ''),
+            role=validated_data.get('role', 'client')
+        )
+        return user

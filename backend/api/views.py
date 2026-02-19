@@ -16,30 +16,26 @@ if GEMINI_API_KEY:
 class SpecialistViewSet(viewsets.ModelViewSet):
     queryset = SpecialistProfile.objects.all()
     serializer_class = SpecialistProfileSerializer
-    permission_classes = [permissions.AllowAny] # Changed to AllowAny for demo
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
     def perform_create(self, serializer):
-        # In a real app, we would create a User first via auth endpoints.
-        # Here we assume the frontend sends user details or we create a dummy user.
-        # For simplicity in this "clone" demo, we check if a user exists or create a temp one.
-        email = self.request.data.get('email', f"user_{status.HTTP_200_OK}@example.com")
-        username = email.split('@')[0]
+        # User must be authenticated to create a profile (and effectively become a specialist)
+        # In this flow, we assume the user registers first, then creates a profile
+        if hasattr(self.request.user, 'specialist_profile'):
+             # Already has a profile
+             return 
         
-        user, created = User.objects.get_or_create(username=username, defaults={'email': email})
-        serializer.save(user=user)
+        serializer.save(user=self.request.user)
+
 
 class TaskViewSet(viewsets.ModelViewSet):
     queryset = Task.objects.all().order_by('-created_at')
     serializer_class = TaskSerializer
-    permission_classes = [permissions.AllowAny] # Changed to AllowAny for demo
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
     def perform_create(self, serializer):
-        # If user is anonymous (frontend mock login), assign to a Demo Client
-        if self.request.user.is_authenticated:
-            serializer.save(client=self.request.user)
-        else:
-            demo_user, _ = User.objects.get_or_create(username='demo_client', defaults={'first_name': 'Demo', 'last_name': 'Client'})
-            serializer.save(client=demo_user)
+        serializer.save(client=self.request.user)
+
 
 class AIAnalyzeView(APIView):
     permission_classes = [permissions.AllowAny]

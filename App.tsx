@@ -10,6 +10,7 @@ import { SearchPage } from './pages/SearchPage';
 import { CreateTaskPage } from './pages/CreateTaskPage';
 import { SpecialistDashboard } from './pages/SpecialistDashboard';
 import { LoginPage } from './pages/LoginPage';
+import { RegisterPage } from './pages/RegisterPage';
 import { SpecialistOnboardingPage } from './pages/SpecialistOnboardingPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { MessagesPage } from './pages/MessagesPage';
@@ -57,6 +58,7 @@ const App: React.FC = () => {
                 <Route path="/create-task" element={<CreateTaskPage />} />
                 <Route path="/specialist-dashboard" element={<SpecialistDashboard />} />
                 <Route path="/login" element={<LoginPage />} />
+                <Route path="/register" element={<RegisterPage />} />
                 <Route path="/become-specialist" element={<SpecialistOnboardingPage />} />
                 <Route path="/profile" element={<ProfilePage />} />
                 <Route path="/messages" element={<MessagesPage />} />

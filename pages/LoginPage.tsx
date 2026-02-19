@@ -11,20 +11,24 @@ export const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    login(email, role);
-    if (role === UserRole.SPECIALIST) {
+    try {
+      await login(email, password);
+      if (role === UserRole.SPECIALIST) {
         navigate('/specialist-dashboard');
-    } else {
+      } else {
         navigate('/');
+      }
+    } catch (error) {
+      alert("Ошибка входа! Проверьте email и пароль.");
     }
   };
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-slate-900 flex items-center justify-center p-4">
       <div className="max-w-md w-full bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-gray-100 dark:border-slate-700 p-8">
-        
+
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Вход в Maestro</h1>
           <p className="text-gray-500 dark:text-gray-400">Выберите тип аккаунта</p>
@@ -33,22 +37,20 @@ export const LoginPage: React.FC = () => {
         <div className="flex bg-gray-100 dark:bg-slate-700 p-1 rounded-xl mb-6">
           <button
             onClick={() => setRole(UserRole.CLIENT)}
-            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-all ${
-              role === UserRole.CLIENT
-                ? 'bg-white dark:bg-slate-600 text-primary-600 dark:text-primary-400 shadow-sm'
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-            }`}
+            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-all ${role === UserRole.CLIENT
+              ? 'bg-white dark:bg-slate-600 text-primary-600 dark:text-primary-400 shadow-sm'
+              : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+              }`}
           >
             <User className="w-4 h-4" />
             Я Заказчик
           </button>
           <button
             onClick={() => setRole(UserRole.SPECIALIST)}
-            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-all ${
-              role === UserRole.SPECIALIST
-                ? 'bg-white dark:bg-slate-600 text-primary-600 dark:text-primary-400 shadow-sm'
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-            }`}
+            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-all ${role === UserRole.SPECIALIST
+              ? 'bg-white dark:bg-slate-600 text-primary-600 dark:text-primary-400 shadow-sm'
+              : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+              }`}
           >
             <Briefcase className="w-4 h-4" />
             Я Специалист
@@ -89,21 +91,21 @@ export const LoginPage: React.FC = () => {
         </form>
 
         <div className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
-           {role === UserRole.SPECIALIST ? (
-               <p>
-                   Нет аккаунта?{' '}
-                   <Link to="/become-specialist" className="text-primary-600 hover:underline font-medium">
-                       Стать специалистом
-                   </Link>
-               </p>
-           ) : (
-               <p>
-                   Нет аккаунта?{' '}
-                   <Link to="#" className="text-primary-600 hover:underline font-medium">
-                       Зарегистрироваться
-                   </Link>
-               </p>
-           )}
+          {role === UserRole.SPECIALIST ? (
+            <p>
+              Нет аккаунта?{' '}
+              <Link to="/become-specialist" className="text-primary-600 hover:underline font-medium">
+                Стать специалистом
+              </Link>
+            </p>
+          ) : (
+            <p>
+              Нет аккаунта?{' '}
+              <Link to="/register" className="text-primary-600 hover:underline font-medium">
+                Зарегистрироваться
+              </Link>
+            </p>
+          )}
         </div>
       </div>
     </div>

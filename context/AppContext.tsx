@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Task, TaskStatus, UserRole, ServiceCategory, UserProfile, Specialist, Conversation, Message, TaskResponse } from '../types';
-import { MOCK_SPECIALISTS, MOCK_TASKS_DATA } from '../constants';
 import { useToast } from './ToastContext'; // Import Toast for notifications
+import api from '../services/api';
 
 interface AppContextType {
   role: UserRole;
@@ -12,8 +12,9 @@ interface AppContextType {
   addResponse: (taskId: string, message: string, price: number) => void;
   deleteTask: (taskId: string) => void;
   currentUser: UserProfile | null;
-  login: (email: string, role: UserRole) => void;
-  registerSpecialist: (data: Partial<Specialist> & { email: string, phone: string }) => void;
+  login: (email: string, password: string) => Promise<void>;
+  register: (data: any) => Promise<void>;
+  registerSpecialist: (data: Partial<Specialist> & { email: string, phone: string, passportFile?: File, profileFile?: File }) => Promise<void>;
   logout: () => void;
   updateUser: (user: UserProfile) => void;
   toggleFavorite: (specialistId: string) => void;
@@ -26,9 +27,6 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-// USE MOCK DATA AS INITIAL STATE FOR MVP PRESENTATION
-const INITIAL_TASKS: Task[] = MOCK_TASKS_DATA; 
-const MOCK_RESPONSES: TaskResponse[] = [];
 const API_BASE_URL = 'http://127.0.0.1:8000/api';
 
 // Tashkent Center Coordinates
@@ -42,37 +40,65 @@ const getRandomCoords = () => {
   return { lat, lng };
 };
 
-// Enhance mock specialists with coordinates if missing
-const ENHANCED_MOCK_SPECIALISTS = MOCK_SPECIALISTS.map(s => ({
-  ...s,
-  ...getRandomCoords()
-}));
-
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { addToast } = useToast(); // Use toast context
   const [role, setRole] = useState<UserRole>(UserRole.CLIENT);
-  const [tasks, setTasks] = useState<Task[]>(INITIAL_TASKS);
-  const [taskResponses, setTaskResponses] = useState<TaskResponse[]>(MOCK_RESPONSES);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [taskResponses, setTaskResponses] = useState<TaskResponse[]>([]);
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [specialists, setSpecialists] = useState<Specialist[]>(ENHANCED_MOCK_SPECIALISTS);
+  const [specialists, setSpecialists] = useState<Specialist[]>([]);
 
   // Helper to map Django Task to Frontend Task
   const mapTask = (t: any): Task => ({
-      id: t.id.toString(),
-      title: t.title,
-      description: t.description,
-      category: t.category as ServiceCategory,
-      budget: t.budget,
-      location: t.location,
-      date: t.date_info,
-      status: t.status as TaskStatus,
-      createdAt: new Date(t.created_at).getTime(),
-      responsesCount: t.responses_count || 0
+    id: t.id.toString(),
+    title: t.title,
+    description: t.description,
+    category: t.category as ServiceCategory,
+    budget: t.budget,
+    location: t.location,
+    date: t.date_info,
+    status: t.status as TaskStatus,
+    createdAt: new Date(t.created_at).getTime(),
+    responsesCount: t.responses_count || 0
   });
 
   // Fetch Data on Load
   useEffect(() => {
+    const initAuth = async () => {
+      const token = localStorage.getItem('accessToken');
+      if (token) {
+        try {
+          const meRes = await api.get('/auth/me/');
+          const userData: any = meRes.data;
+          // Map backend user to frontend UserProfile
+          const userProfile: UserProfile = {
+            id: userData.id.toString(),
+            name: userData.first_name || userData.username,
+            email: userData.email,
+            role: userData.role as UserRole,
+            location: userData.location || 'Ташкент', // Using location from User model now
+            avatarUrl: userData.avatar_url || `https://ui-avatars.com/api/?name=${userData.username}`,
+            favorites: [] // TODO: Load favorites
+          };
+
+          // If specialist, we might need to fetch profile separately or include it in MeView
+          if (userData.role === UserRole.SPECIALIST) {
+            // For now assume simple mapping, ideally MeView returns profile
+          }
+
+          setCurrentUser(userProfile);
+          setRole(userData.role as UserRole);
+
+        } catch (e) {
+          console.error("Auth check failed", e);
+          localStorage.removeItem('accessToken');
+          localStorage.removeItem('refreshToken');
+        }
+      }
+    };
+    initAuth();
+
     const fetchData = async () => {
       try {
         // 1. Specialists
@@ -104,19 +130,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           }
         }
 
-        // 2. Tasks - Attempt to fetch real tasks, but append to mocks or replace
+        // 2. Tasks
         const taskRes = await fetch(`${API_BASE_URL}/tasks/`);
         if (taskRes.ok) {
           const taskData = await taskRes.json();
           if (Array.isArray(taskData) && taskData.length > 0) {
-            // Merge mock and real tasks for demo
             const realTasks = taskData.map(mapTask);
-            setTasks([...realTasks, ...INITIAL_TASKS]); 
+            setTasks(realTasks);
           }
         }
       } catch (error) {
         console.warn("Backend API not available, using mock data.");
-        // We already set ENHANCED_MOCK_SPECIALISTS and INITIAL_TASKS as default state
       }
     };
     fetchData();
@@ -126,144 +150,111 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setRole(prev => prev === UserRole.CLIENT ? UserRole.SPECIALIST : UserRole.CLIENT);
   };
 
-  // *** DEMO FEATURE: Simulate bots responding to new tasks ***
-  const simulateBotResponses = (taskId: string, category: ServiceCategory) => {
-      // Find relevant mock specialists
-      const potentialPros = specialists.filter(s => s.category === category || category === ServiceCategory.OTHER).slice(0, 2);
-      
-      if (potentialPros.length === 0) return;
 
-      potentialPros.forEach((pro, index) => {
-          setTimeout(() => {
-              const fakeResponse: TaskResponse = {
-                  id: `auto_res_${Date.now()}_${index}`,
-                  taskId: taskId,
-                  specialistId: pro.id,
-                  specialistName: pro.name,
-                  specialistAvatar: pro.avatarUrl,
-                  specialistRating: pro.rating,
-                  message: `Здравствуйте! Заинтересовал ваш заказ. Готов выполнить качественно. У меня есть опыт в категории ${category}.`,
-                  price: pro.priceStart + (Math.floor(Math.random() * 50000)),
-                  createdAt: Date.now()
-              };
-
-              setTaskResponses(prev => [fakeResponse, ...prev]);
-              setTasks(prev => prev.map(t => t.id === taskId ? { ...t, responsesCount: t.responsesCount + 1 } : t));
-              
-              // Only notify if current user is the owner (CLIENT)
-              addToast(`Новый отклик от мастера ${pro.name}!`, 'success');
-              
-          }, 4000 + (index * 3000)); // Delay: 4s and 7s
-      });
-  };
 
   const addTask = async (task: Task) => {
     // Optimistic UI update
     setTasks(prev => [task, ...prev]);
 
-    // Trigger simulation for demo
-    simulateBotResponses(task.id, task.category);
-
     try {
-        const response = await fetch(`${API_BASE_URL}/tasks/`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                title: task.title,
-                description: task.description,
-                category: task.category,
-                budget: task.budget,
-                location: task.location,
-                date_info: task.date,
-                status: task.status
-            })
-        });
-        
-        if (response.ok) {
-            const savedTask = await response.json();
-            // Replace the optimistic task with the real one (with real ID)
-            setTasks(prev => prev.map(t => t.id === task.id ? mapTask(savedTask) : t));
-        }
+      const response = await fetch(`${API_BASE_URL}/tasks/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: task.title,
+          description: task.description,
+          category: task.category,
+          budget: task.budget,
+          location: task.location,
+          date_info: task.date,
+          status: task.status
+        })
+      });
+
+      if (response.ok) {
+        const savedTask = await response.json();
+        // Replace the optimistic task with the real one (with real ID)
+        setTasks(prev => prev.map(t => t.id === task.id ? mapTask(savedTask) : t));
+      }
     } catch (e) {
-        console.error("Failed to save task to backend (Demo mode active)", e);
+      console.error("Failed to save task to backend (Demo mode active)", e);
     }
   };
 
   const deleteTask = async (taskId: string) => {
-      setTasks(prev => prev.filter(t => t.id !== taskId));
-      try {
-          await fetch(`${API_BASE_URL}/tasks/${taskId}/`, { method: 'DELETE' });
-      } catch(e) { console.error(e); }
+    setTasks(prev => prev.filter(t => t.id !== taskId));
+    try {
+      await fetch(`${API_BASE_URL}/tasks/${taskId}/`, { method: 'DELETE' });
+    } catch (e) { console.error(e); }
   };
 
   const addResponse = (taskId: string, message: string, price: number) => {
-      if (!currentUser || currentUser.role !== UserRole.SPECIALIST || !currentUser.specialistProfile) return;
+    if (!currentUser || currentUser.role !== UserRole.SPECIALIST || !currentUser.specialistProfile) return;
 
-      const newResponse: TaskResponse = {
-          id: `res_${Date.now()}`,
-          taskId,
-          specialistId: currentUser.specialistProfile.id,
-          specialistName: currentUser.specialistProfile.name,
-          specialistAvatar: currentUser.specialistProfile.avatarUrl,
-          specialistRating: currentUser.specialistProfile.rating,
-          message,
-          price,
-          createdAt: Date.now()
-      };
-
-      setTaskResponses(prev => [newResponse, ...prev]);
-      setTasks(prev => prev.map(t => t.id === taskId ? { ...t, responsesCount: t.responsesCount + 1 } : t));
-  };
-
-  const login = (email: string, role: UserRole) => {
-    // Demo login logic (matches email to existing specialists or creates dummy user)
-    let userId = 'u1';
-    let userSpecialistProfile: Specialist | undefined;
-
-    if (role === UserRole.SPECIALIST) {
-        const found = specialists.find(s => s.name.toLowerCase().includes(email.split('@')[0].toLowerCase())) || specialists[0];
-        if (found) {
-            userId = found.id;
-            userSpecialistProfile = found;
-        } else {
-             userSpecialistProfile = {
-                id: 'new_spec',
-                name: email.split('@')[0],
-                category: ServiceCategory.REPAIR,
-                rating: 5.0,
-                reviewsCount: 0,
-                location: 'Ташкент',
-                priceStart: 100000,
-                avatarUrl: 'https://ui-avatars.com/api/?name=' + email.split('@')[0],
-                description: 'Мастер',
-                verified: false,
-                tags: []
-             };
-        }
-    }
-
-    const mockUser: UserProfile = {
-      id: userId,
-      name: userSpecialistProfile ? userSpecialistProfile.name : email.split('@')[0],
-      email: email,
-      role: role,
-      location: userSpecialistProfile ? userSpecialistProfile.location : 'Ташкент',
-      avatarUrl: userSpecialistProfile ? userSpecialistProfile.avatarUrl : `https://ui-avatars.com/api/?name=${email.split('@')[0]}`,
-      favorites: []
+    const newResponse: TaskResponse = {
+      id: `res_${Date.now()}`,
+      taskId,
+      specialistId: currentUser.specialistProfile.id,
+      specialistName: currentUser.specialistProfile.name,
+      specialistAvatar: currentUser.specialistProfile.avatarUrl,
+      specialistRating: currentUser.specialistProfile.rating,
+      message,
+      price,
+      createdAt: Date.now()
     };
 
-    if (role === UserRole.SPECIALIST && userSpecialistProfile) {
-        mockUser.specialistProfile = userSpecialistProfile;
-    }
-
-    setCurrentUser(mockUser);
-    setRole(role);
+    setTaskResponses(prev => [newResponse, ...prev]);
+    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, responsesCount: t.responsesCount + 1 } : t));
   };
 
-  const registerSpecialist = async (data: Partial<Specialist> & { email: string, phone: string }) => {
+  const login = async (email: string, password: string) => {
+    try {
+      const response = await api.post('/auth/token/', { username: email, password }); // Using email as username for now or we need to adjust backend
+      // Note: Backend default TokenObtainPairView expects 'username' and 'password'. 
+      // If we want to use email, we need custom view or client to send email as username if username=email.
+      // For this MVP, let's assume username=email in registration.
+
+      const { access, refresh } = response.data;
+      localStorage.setItem('accessToken', access);
+      localStorage.setItem('refreshToken', refresh);
+
+      // Decode token to get role or fetch me
+      const meRes = await api.get('/auth/me/');
+      const userData: any = meRes.data;
+
+      const userProfile: UserProfile = {
+        id: userData.id.toString(),
+        name: userData.first_name || userData.username,
+        email: userData.email,
+        role: userData.role as UserRole,
+        location: userData.location || 'Ташкент',
+        avatarUrl: userData.avatar_url || `https://ui-avatars.com/api/?name=${userData.username}`,
+        favorites: []
+      };
+
+      setCurrentUser(userProfile);
+      setRole(userData.role as UserRole);
+      addToast("Вы успешно вошли!", 'success');
+    } catch (error) {
+      console.error("Login failed", error);
+      throw new Error("Неверный логин или пароль");
+    }
+  };
+
+  const register = async (data: any) => {
+    try {
+      await api.post('/auth/register/', data);
+      await login(data.username, data.password);
+    } catch (error) {
+      console.error("Registration failed", error);
+      throw error;
+    }
+  };
+
+  const registerSpecialist = async (data: Partial<Specialist> & { email: string, phone: string, passportFile?: File, profileFile?: File }) => {
     const tempId = Date.now().toString();
     const coords = getRandomCoords();
-    
+
     // Frontend optimistic update
     const newSpecialist: Specialist = {
       id: tempId,
@@ -299,32 +290,45 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     // Backend Save
     try {
-        const payload = {
-            category: data.category,
-            price_start: data.priceStart,
-            description: data.description,
-            location: data.location,
-            tags: data.tags,
-            email: data.email, // Passed to create/find user in backend
-            phone: data.phone,
-            is_verified: true
-        };
+      const formData = new FormData();
+      formData.append('category', data.category || '');
+      formData.append('price_start', data.priceStart?.toString() || '0');
+      formData.append('description', data.description || '');
+      formData.append('location', data.location || '');
+      if (data.tags) {
+        // Send tags as individual items or JSON string depending on backend expectation
+        // Django list field usually expects JSON if using simple implementation, or separate values if ManyToMany
+        // Given models.py has JSONField, we should send it as a JSON string
+        formData.append('tags', JSON.stringify(data.tags));
+      }
+      formData.append('email', data.email);
+      formData.append('phone', data.phone);
+      formData.append('is_verified', 'true'); // Demo auto-verify
 
-        const response = await fetch(`${API_BASE_URL}/specialists/`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
+      if (data.passportFile) {
+        formData.append('passport_image', data.passportFile);
+      }
+      if (data.profileFile) {
+        formData.append('profile_image', data.profileFile);
+      }
 
-        if (response.ok) {
-            const savedSpec = await response.json();
-            // Update the optimistic ID with real DB ID
-            const realSpec = { ...newSpecialist, id: savedSpec.id.toString() };
-            setSpecialists(prev => prev.map(s => s.id === tempId ? realSpec : s));
-            setCurrentUser({ ...newUser, id: savedSpec.id.toString(), specialistProfile: realSpec });
-        }
+      const response = await fetch(`${API_BASE_URL}/specialists/`, {
+        method: 'POST',
+        // Start header removal
+        // headers: { 'Content-Type': 'multipart/form-data' }, // Do NOT set Content-Type manually with FormData, browser does it with boundary
+        // End header removal
+        body: formData
+      });
+
+      if (response.ok) {
+        const savedSpec = await response.json();
+        // Update the optimistic ID with real DB ID
+        const realSpec = { ...newSpecialist, id: savedSpec.id.toString() };
+        setSpecialists(prev => prev.map(s => s.id === tempId ? realSpec : s));
+        setCurrentUser({ ...newUser, id: savedSpec.id.toString(), specialistProfile: realSpec });
+      }
     } catch (e) {
-        console.error("Failed to register specialist", e);
+      console.error("Failed to register specialist", e);
     }
   };
 
@@ -337,9 +341,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const updateUser = (user: UserProfile) => {
     setCurrentUser(user);
     if (user.role === UserRole.SPECIALIST && user.specialistProfile) {
-        setSpecialists(prev => prev.map(s => 
-            s.id === user.specialistProfile!.id ? user.specialistProfile! : s
-        ));
+      setSpecialists(prev => prev.map(s =>
+        s.id === user.specialistProfile!.id ? user.specialistProfile! : s
+      ));
     }
   };
 
@@ -356,58 +360,58 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const sendMessage = (conversationId: string, text: string, media?: { url: string, type: 'image' }) => {
-      // Mock chat logic same as before (Chat is usually complex to implement fully with backend in one step)
-      if (!currentUser) return;
-      
-      const conversation = conversations.find(c => c.id === conversationId);
-      const participantId = conversation?.participantId;
+    // Mock chat logic same as before (Chat is usually complex to implement fully with backend in one step)
+    if (!currentUser) return;
 
-      const newMessage: Message = {
-          id: Date.now().toString(),
-          senderId: currentUser.id,
-          text,
-          timestamp: Date.now(),
-          isRead: false,
-          mediaUrl: media?.url,
-          mediaType: media?.type
-      };
+    const conversation = conversations.find(c => c.id === conversationId);
+    const participantId = conversation?.participantId;
 
-      setConversations(prev => prev.map(c => {
-          if (c.id === conversationId) {
-              return {
-                  ...c,
-                  messages: [...c.messages, newMessage]
-              };
-          }
-          return c;
-      }));
+    const newMessage: Message = {
+      id: Date.now().toString(),
+      senderId: currentUser.id,
+      text,
+      timestamp: Date.now(),
+      isRead: false,
+      mediaUrl: media?.url,
+      mediaType: media?.type
+    };
+
+    setConversations(prev => prev.map(c => {
+      if (c.id === conversationId) {
+        return {
+          ...c,
+          messages: [...c.messages, newMessage]
+        };
+      }
+      return c;
+    }));
   };
 
   const markAsRead = (conversationId: string) => {
-     // Mock local logic
-     setConversations(prev => prev.map(c => 
-         c.id === conversationId ? { ...c, messages: c.messages.map(m => ({...m, isRead: true})) } : c
-     ));
+    // Mock local logic
+    setConversations(prev => prev.map(c =>
+      c.id === conversationId ? { ...c, messages: c.messages.map(m => ({ ...m, isRead: true })) } : c
+    ));
   };
 
   const startChat = (specialistId: string) => {
-      if (!currentUser) return;
-      const existing = conversations.find(c => c.participantId === specialistId);
-      if (existing) return;
+    if (!currentUser) return;
+    const existing = conversations.find(c => c.participantId === specialistId);
+    if (existing) return;
 
-      const specialist = specialists.find(s => s.id === specialistId);
-      const newConversation: Conversation = {
-          id: `c_${Date.now()}`,
-          participantId: specialistId,
-          participantName: specialist ? specialist.name : 'Специалист',
-          participantAvatar: specialist ? specialist.avatarUrl : '',
-          messages: []
-      };
-      setConversations(prev => [newConversation, ...prev]);
+    const specialist = specialists.find(s => s.id === specialistId);
+    const newConversation: Conversation = {
+      id: `c_${Date.now()}`,
+      participantId: specialistId,
+      participantName: specialist ? specialist.name : 'Специалист',
+      participantAvatar: specialist ? specialist.avatarUrl : '',
+      messages: []
+    };
+    setConversations(prev => [newConversation, ...prev]);
   };
 
   return (
-    <AppContext.Provider value={{ role, switchRole, tasks, taskResponses, addTask, addResponse, deleteTask, currentUser, login, registerSpecialist, logout, updateUser, toggleFavorite, conversations, sendMessage, startChat, markAsRead, specialists }}>
+    <AppContext.Provider value={{ role, switchRole, tasks, taskResponses, addTask, addResponse, deleteTask, currentUser, login, register, registerSpecialist, logout, updateUser, toggleFavorite, conversations, sendMessage, startChat, markAsRead, specialists }}>
       {children}
     </AppContext.Provider>
   );

@@ -37,6 +37,8 @@ class SpecialistProfile(models.Model):
     description = models.TextField()
     is_verified = models.BooleanField(default=False)
     tags = models.JSONField(default=list)  # Stores list of strings: ['Сантехник', 'Трубы']
+    passport_image = models.ImageField(upload_to='specialist_documents/', blank=True, null=True)
+    profile_image = models.ImageField(upload_to='specialist_avatars/', blank=True, null=True)
     telegram = models.CharField(max_length=100, blank=True)
     instagram = models.CharField(max_length=100, blank=True)
 
