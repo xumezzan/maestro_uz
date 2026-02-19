@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Check, Wrench, BookOpen, Palette, Monitor, Truck, Zap, Shield, HeartHandshake, UserCheck, Search, Star, ArrowRight
+  Search, Star, ArrowRight, Wrench, BookOpen, Palette, Monitor, Truck, Shield, HeartHandshake, UserCheck,
+  Zap, ChevronRight, Play, TrendingUp, Award, Clock, Users, CheckCircle2
 } from 'lucide-react';
 import { HERO_CARDS, POPULAR_REQUESTS } from '../constants';
 import { useLanguage } from '../context/LanguageContext';
@@ -12,20 +13,16 @@ export const HomePage: React.FC = () => {
   const [query, setQuery] = useState('');
   const navigate = useNavigate();
   const { t } = useLanguage();
-  const { currentUser, specialists, tasks } = useAppContext(); // Get real data
+  const { currentUser, specialists, tasks } = useAppContext();
   const specialistsCount = specialists.length;
   const tasksCount = tasks.length;
-  // Note: For a real app with pagination, we'd need a separate stats API endpoint. 
-  // For now, we use loaded length or hardcode "0" if empty to encourage signups.
 
-  // Redirect Specialists to their Dashboard immediately
   useEffect(() => {
     if (currentUser?.role === UserRole.SPECIALIST) {
       navigate('/specialist-dashboard');
     }
   }, [currentUser, navigate]);
 
-  // If redirected, don't render content to prevent flash
   if (currentUser?.role === UserRole.SPECIALIST) {
     return null;
   }
@@ -41,64 +38,59 @@ export const HomePage: React.FC = () => {
     navigate(`/search?category=${encodeURIComponent(cat)}`);
   };
 
-  const displayCity = currentUser?.location ? currentUser.location.split(',')[0] : t('tashkent');
+  const trustedLogos = ['Amazon', 'Google', 'Netflix', 'Meta', 'PayPal'];
 
   return (
-    <div className="flex flex-col min-h-screen font-sans">
+    <div className="flex flex-col min-h-screen page-bg">
 
-      {/* Hero Section */}
-      <div className="relative bg-white dark:bg-slate-900 pt-12 md:pt-20 pb-12 transition-colors duration-200 overflow-hidden">
-
-        {/* Animated Background Layer */}
-        <div className="absolute inset-0 z-0 pointer-events-none select-none opacity-40">
-          <div className="absolute top-[-10%] left-[20%] w-[60%] h-[60%] bg-violet-100 dark:bg-violet-900/10 rounded-full filter blur-[100px] animate-blob"></div>
-          <div className="absolute bottom-[-10%] right-[20%] w-[60%] h-[60%] bg-indigo-50 dark:bg-indigo-900/10 rounded-full filter blur-[100px] animate-blob" style={{ animationDelay: '4s' }}></div>
+      {/* === HERO Section === */}
+      <section className="relative overflow-hidden fiverr-hero-gradient">
+        {/* Decorative elements */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute w-96 h-96 rounded-full bg-fiverr-green/10 blur-[120px] -top-20 -left-20" />
+          <div className="absolute w-80 h-80 rounded-full bg-fiverr-green/5 blur-[100px] bottom-0 right-10" />
         </div>
 
-        <div className="max-w-7xl mx-auto px-4 relative z-10">
-
-          <div className="max-w-4xl mx-auto text-center mb-10">
-            <h1 className="text-4xl md:text-6xl font-extrabold text-gray-900 dark:text-white mb-6 tracking-tight leading-[1.1] whitespace-pre-line">
-              {t('heroTitle')}
+        <div className="relative fiverr-container pt-16 pb-20 md:pt-24 md:pb-32">
+          <div className="max-w-3xl animate-fade-in-up">
+            <h1 className="text-4xl md:text-6xl lg:text-7xl font-black text-white mb-6 leading-[1.1]">
+              {t('heroTitle') || 'Найдите идеального'}{' '}
+              <span className="text-fiverr-green">
+                {t('specialist') || 'специалиста'}
+              </span>{' '}
+              {t('heroTitleSuffix') || 'прямо сейчас'}
             </h1>
-            <p className="text-lg md:text-xl text-gray-500 dark:text-gray-400 max-w-2xl mx-auto">
-              {t('heroSubtitle')} <span className="text-primary-600 font-bold border-b-2 border-primary-600/20">{displayCity}</span>
-              <br />
-              <span className="text-sm font-medium mt-2 block opacity-80">
-                Доступно {specialistsCount} специалистов и {tasksCount} активных заказов
-              </span>
+            <p className="text-lg md:text-xl text-white/60 mb-10 max-w-xl leading-relaxed">
+              {t('heroSubtitle') || 'Тысячи проверенных профессионалов готовы помочь вам с любой задачей'}
             </p>
-          </div>
 
-          {/* Big Search Bar - Profi Style */}
-          <div className="max-w-3xl mx-auto mb-16">
-            <form onSubmit={handleSearch} className="relative shadow-2xl shadow-violet-200/50 dark:shadow-none rounded-2xl group">
-              <div className="absolute inset-y-0 left-0 pl-6 flex items-center pointer-events-none">
-                <Search className="h-6 w-6 text-gray-400 group-focus-within:text-primary-600 transition-colors" />
-              </div>
+            {/* Search Bar */}
+            <form onSubmit={handleSearch} className="flex rounded-xl overflow-hidden shadow-2xl shadow-black/30 max-w-2xl mb-6"
+              style={{ border: '2px solid rgba(255,255,255,0.2)' }}>
               <input
                 type="text"
-                className="w-full pl-16 pr-40 py-5 rounded-2xl bg-white dark:bg-slate-800 border-2 border-transparent focus:border-primary-500 outline-none text-lg text-gray-900 dark:text-white placeholder-gray-400 transition-all font-medium"
-                placeholder={t('searchPlaceholder')}
+                className="flex-1 px-6 py-4 md:py-5 bg-fiverr-card text-white text-base md:text-lg outline-none placeholder-fiverr-text-dim"
+                placeholder={t('searchPlaceholder') || 'Попробуйте "ремонт квартиры"'}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
               />
               <button
                 type="submit"
-                className="absolute right-2 top-2 bottom-2 bg-primary-600 hover:bg-primary-700 text-white px-8 rounded-xl font-bold text-lg transition-all active:scale-95"
+                className="px-8 md:px-10 bg-fiverr-green hover:bg-fiverr-green-dark text-white font-bold text-lg transition-colors flex items-center gap-2"
               >
-                {t('find')}
+                <Search className="w-5 h-5" />
+                <span className="hidden md:inline">{t('find') || 'Найти'}</span>
               </button>
             </form>
 
-            {/* Popular Tags (Pills) */}
-            <div className="mt-6 flex flex-wrap justify-center gap-2">
-              <span className="text-sm text-gray-400 py-1.5">{t('popular')}</span>
+            {/* Popular tags */}
+            <div className="flex flex-wrap items-center gap-2 text-sm">
+              <span className="text-white/40 font-medium">{t('popularRequests') || 'Популярное'}:</span>
               {POPULAR_REQUESTS.map((req, idx) => (
                 <button
                   key={idx}
                   onClick={() => handleCategoryClick(req)}
-                  className="px-4 py-1.5 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-full text-sm font-medium text-gray-600 dark:text-gray-300 hover:border-primary-400 hover:text-primary-600 transition-colors shadow-sm"
+                  className="fiverr-tag"
                 >
                   {t(req)}
                 </button>
@@ -106,82 +98,230 @@ export const HomePage: React.FC = () => {
             </div>
           </div>
 
-          {/* Hero Cards Grid (Profi Style) */}
-          <div className="max-w-6xl mx-auto">
-            <div className="flex justify-between items-end mb-6 px-2">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{t('popularCategories')}</h2>
-              <button
-                onClick={() => navigate('/categories')}
-                className="text-primary-600 font-medium hover:text-primary-700 flex items-center gap-1"
-              >
-                {t('allServices')} <ArrowRight className="w-4 h-4" />
-              </button>
+          {/* Stats floating */}
+          <div className="hidden lg:flex absolute right-12 top-1/2 -translate-y-1/2 flex-col gap-4">
+            <div className="fiverr-card p-5 text-center min-w-[140px] animate-fade-in" style={{ animationDelay: '200ms' }}>
+              <div className="text-3xl font-black text-fiverr-green">{specialistsCount || '500'}+</div>
+              <div className="text-xs text-fiverr-text-muted mt-1 font-medium">{t('activeSpecialists') || 'Специалистов'}</div>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-24">
-              {HERO_CARDS.map((card) => (
-                <div
-                  key={card.id}
-                  onClick={() => handleCategoryClick(card.title)}
-                  className={`${card.color} dark:opacity-90 rounded-2xl h-32 md:h-40 relative overflow-hidden cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group`}
-                >
-                  <div className="absolute top-4 left-4 right-4 z-20">
-                    <h3 className="font-bold text-gray-900 text-lg leading-tight tracking-tight">
-                      {t(card.title)}
-                    </h3>
-                  </div>
-                  <img
-                    src={card.img}
-                    alt={t(card.title)}
-                    className="absolute -right-4 -bottom-4 w-24 h-24 md:w-28 md:h-28 object-cover rounded-tl-[2rem] shadow-sm group-hover:scale-110 transition-transform duration-500 z-10"
-                  />
-                </div>
-              ))}
+            <div className="fiverr-card p-5 text-center min-w-[140px] animate-fade-in" style={{ animationDelay: '400ms' }}>
+              <div className="text-3xl font-black text-fiverr-yellow">{tasksCount || '1,200'}+</div>
+              <div className="text-xs text-fiverr-text-muted mt-1 font-medium">{t('completedTasks') || 'Заказов'}</div>
+            </div>
+            <div className="fiverr-card p-5 text-center min-w-[140px] animate-fade-in" style={{ animationDelay: '600ms' }}>
+              <div className="text-3xl font-black text-fiverr-orange">4.9</div>
+              <div className="text-xs text-fiverr-text-muted mt-1 font-medium">{t('averageRating') || 'Средний рейтинг'}</div>
             </div>
           </div>
-
-          {/* Trust Blocks */}
-          <div className="mb-24 bg-gray-50 dark:bg-slate-800 rounded-3xl p-8 md:p-12 border border-gray-100 dark:border-slate-700">
-            <h2 className="text-center text-2xl font-bold text-gray-900 dark:text-white mb-10">{t('trustTitle')}</h2>
-            <div className="grid md:grid-cols-3 gap-8">
-              <div className="flex flex-col items-center text-center">
-                <div className="w-16 h-16 bg-white dark:bg-slate-700 rounded-2xl flex items-center justify-center text-green-500 mb-4 shadow-sm">
-                  <Shield className="w-8 h-8" />
-                </div>
-                <h3 className="font-bold text-lg mb-2 dark:text-white">{t('trust1Title')}</h3>
-                <p className="text-gray-600 dark:text-gray-400 text-sm">{t('trust1Desc')}</p>
-              </div>
-              <div className="flex flex-col items-center text-center">
-                <div className="w-16 h-16 bg-white dark:bg-slate-700 rounded-2xl flex items-center justify-center text-yellow-500 mb-4 shadow-sm">
-                  <Star className="w-8 h-8 fill-current" />
-                </div>
-                <h3 className="font-bold text-lg mb-2 dark:text-white">{t('trust2Title')}</h3>
-                <p className="text-gray-600 dark:text-gray-400 text-sm">{t('trust2Desc')}</p>
-              </div>
-              <div className="flex flex-col items-center text-center">
-                <div className="w-16 h-16 bg-white dark:bg-slate-700 rounded-2xl flex items-center justify-center text-blue-500 mb-4 shadow-sm">
-                  <HeartHandshake className="w-8 h-8" />
-                </div>
-                <h3 className="font-bold text-lg mb-2 dark:text-white">{t('trust3Title')}</h3>
-                <p className="text-gray-600 dark:text-gray-400 text-sm">{t('trust3Desc')}</p>
-              </div>
-            </div>
-          </div>
-
         </div>
-      </div>
+      </section>
 
-      {/* Footer */}
-      <footer className="bg-white dark:bg-slate-800 border-t border-gray-200 dark:border-slate-700 py-12 mt-auto">
-        <div className="max-w-7xl mx-auto px-4 text-center">
-          <div className="font-extrabold text-2xl bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent mb-4 inline-block">Maestro</div>
-          <p className="text-gray-400 text-sm mb-8">{t('footerDesc')}</p>
-          <div className="flex justify-center gap-6 mb-8 text-sm font-medium text-gray-500">
-            <a href="#" className="hover:text-primary-600">{t('aboutService')}</a>
-            <a href="#" className="hover:text-primary-600">{t('becomeSpecialist')}</a>
-            <a href="#" className="hover:text-primary-600">{t('help')}</a>
-            <a href="#" className="hover:text-primary-600">{t('rules')}</a>
+      {/* === Trusted By === */}
+      <section className="py-8 border-b border-fiverr-border page-bg">
+        <div className="fiverr-container">
+          <div className="flex items-center justify-center gap-8 md:gap-16 text-fiverr-text-dim opacity-40">
+            <span className="text-sm font-medium whitespace-nowrap">{t('trustedBy') || 'Нам доверяют'}:</span>
+            {trustedLogos.map(logo => (
+              <span key={logo} className="text-lg font-bold tracking-wider hidden sm:block">{logo}</span>
+            ))}
           </div>
-          <p className="text-gray-400 text-xs">&copy; 2026 Maestro. {t('rights')}</p>
+        </div>
+      </section>
+
+      {/* === Popular Categories === */}
+      <section className="py-16 md:py-20 page-bg">
+        <div className="fiverr-container">
+          <div className="flex justify-between items-end mb-10">
+            <div>
+              <h2 className="text-3xl md:text-4xl font-black text-heading mb-2">{t('popularCategories') || 'Популярные категории'}</h2>
+              <p className="text-fiverr-text-muted">{t('exploreCat') || 'Откройте для себя нужную услугу'}</p>
+            </div>
+            <button
+              onClick={() => navigate('/categories')}
+              className="hidden md:flex items-center gap-2 text-fiverr-green font-semibold hover:text-fiverr-green-dark transition-colors"
+            >
+              {t('allServices') || 'Все услуги'} <ArrowRight className="w-5 h-5" />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 stagger-children">
+            {HERO_CARDS.map((card) => (
+              <div
+                key={card.id}
+                onClick={() => handleCategoryClick(card.title)}
+                className="group relative rounded-2xl overflow-hidden cursor-pointer fiverr-card h-48 md:h-56"
+              >
+                {/* Background image */}
+                <img
+                  src={card.img}
+                  alt={t(card.title)}
+                  className="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all duration-500"
+                />
+                {/* Gradient */}
+                <div className="absolute inset-0 bg-gradient-to-t from-fiverr-darker via-fiverr-darker/60 to-transparent" />
+
+                {/* Content */}
+                <div className="relative h-full flex flex-col justify-end p-5">
+                  <h3 className="text-lg font-bold text-heading mb-1 group-hover:text-fiverr-green transition-colors">
+                    {t(card.title)}
+                  </h3>
+                  <div className="flex items-center gap-1 text-fiverr-green text-sm font-medium opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0 transition-all duration-300">
+                    {t('explore') || 'Подробнее'} <ChevronRight className="w-4 h-4" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Mobile: show all */}
+          <div className="mt-6 md:hidden text-center">
+            <button
+              onClick={() => navigate('/categories')}
+              className="fiverr-btn fiverr-btn-outline"
+            >
+              {t('allServices') || 'Все услуги'} <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* === How It Works === */}
+      <section className="py-16 md:py-20 relative section-bg">
+        <div className="fiverr-container">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-black text-heading mb-3">{t('howItWorks') || 'Как это работает'}</h2>
+            <p className="text-fiverr-text-muted max-w-lg mx-auto">{t('howItWorksDesc') || 'Три простых шага до результата'}</p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8 md:gap-12">
+            {[
+              { icon: Search, title: t('step1Title') || 'Опишите задачу', desc: t('step1Desc') || 'Расскажите что нужно сделать и когда', num: '01', color: 'text-fiverr-green' },
+              { icon: Users, title: t('step2Title') || 'Получите отклики', desc: t('step2Desc') || 'Проверенные специалисты откликнутся на вашу задачу', num: '02', color: 'text-fiverr-yellow' },
+              { icon: CheckCircle2, title: t('step3Title') || 'Выберите лучшего', desc: t('step3Desc') || 'Сравните отзывы, цены и выберите идеального исполнителя', num: '03', color: 'text-fiverr-orange' },
+            ].map((step, idx) => (
+              <div key={idx} className="text-center group">
+                <div className="relative mx-auto mb-6">
+                  <div className={`w-20 h-20 rounded-2xl bg-fiverr-card border border-fiverr-border flex items-center justify-center mx-auto group-hover:border-fiverr-green/50 transition-colors`}>
+                    <step.icon className={`w-9 h-9 ${step.color}`} />
+                  </div>
+                  <span className="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-fiverr-green/10 border border-fiverr-green/30 text-fiverr-green text-xs font-bold flex items-center justify-center">
+                    {step.num}
+                  </span>
+                </div>
+                <h3 className="text-xl font-bold text-heading mb-3">{step.title}</h3>
+                <p className="text-fiverr-text-muted text-sm leading-relaxed max-w-xs mx-auto">{step.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* === Trust Section === */}
+      <section className="py-16 md:py-20 page-bg">
+        <div className="fiverr-container">
+          <div className="fiverr-card p-8 md:p-16 relative overflow-hidden">
+            {/* Glow effects */}
+            <div className="absolute top-0 right-0 w-80 h-80 bg-fiverr-green/10 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+            <div className="absolute bottom-0 left-0 w-80 h-80 bg-fiverr-blue/10 rounded-full blur-[100px] translate-y-1/2 -translate-x-1/2 pointer-events-none" />
+
+            <h2 className="text-center text-3xl md:text-4xl font-black text-heading mb-14 relative z-10">{t('trustTitle') || 'Maestro — это надежно'}</h2>
+
+            <div className="grid md:grid-cols-3 gap-10 relative z-10">
+              <div className="text-center group">
+                <div className="w-16 h-16 rounded-2xl bg-fiverr-green/10 border border-fiverr-green/20 flex items-center justify-center mx-auto mb-5 group-hover:bg-fiverr-green/20 transition-colors">
+                  <Shield className="w-8 h-8 text-fiverr-green" />
+                </div>
+                <h3 className="font-bold text-lg text-heading mb-3">{t('trust1Title') || 'Проверенные профи'}</h3>
+                <p className="text-fiverr-text-muted text-sm leading-relaxed">{t('trust1Desc')}</p>
+              </div>
+              <div className="text-center group">
+                <div className="w-16 h-16 rounded-2xl bg-fiverr-yellow/10 border border-fiverr-yellow/20 flex items-center justify-center mx-auto mb-5 group-hover:bg-fiverr-yellow/20 transition-colors">
+                  <Star className="w-8 h-8 text-fiverr-yellow fill-current" />
+                </div>
+                <h3 className="font-bold text-lg text-heading mb-3">{t('trust2Title') || 'Честные отзывы'}</h3>
+                <p className="text-fiverr-text-muted text-sm leading-relaxed">{t('trust2Desc')}</p>
+              </div>
+              <div className="text-center group">
+                <div className="w-16 h-16 rounded-2xl bg-fiverr-blue/10 border border-fiverr-blue/20 flex items-center justify-center mx-auto mb-5 group-hover:bg-fiverr-blue/20 transition-colors">
+                  <HeartHandshake className="w-8 h-8 text-fiverr-blue" />
+                </div>
+                <h3 className="font-bold text-lg text-heading mb-3">{t('trust3Title') || 'Безопасные сделки'}</h3>
+                <p className="text-fiverr-text-muted text-sm leading-relaxed">{t('trust3Desc')}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* === CTA: Become a Specialist === */}
+      <section className="py-16 md:py-20 relative overflow-hidden section-bg">
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute w-96 h-96 rounded-full bg-fiverr-green/10 blur-[120px] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none" />
+        </div>
+        <div className="fiverr-container relative z-10">
+          <div className="max-w-3xl mx-auto text-center">
+            <h2 className="text-3xl md:text-5xl font-black text-heading mb-6">{t('becomeSpecialist') || 'Стань специалистом'}</h2>
+            <p className="text-lg text-fiverr-text-muted mb-10 leading-relaxed max-w-xl mx-auto">
+              {t('becomeSpecialistDesc') || 'Присоединяйтесь к тысячам профессионалов на Maestro. Получайте заказы и зарабатывайте.'}
+            </p>
+            <button
+              onClick={() => navigate('/become-specialist')}
+              className="fiverr-btn fiverr-btn-primary text-lg px-10 py-4 animate-pulse-green"
+            >
+              {t('becomeSpecialist') || 'Стать специалистом'} <ArrowRight className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* === Footer === */}
+      <footer className="py-14 border-t border-fiverr-border chat-bg">
+        <div className="fiverr-container">
+          <div className="grid md:grid-cols-4 gap-10 mb-12">
+            {/* Brand */}
+            <div>
+              <div className="text-2xl font-black text-heading mb-4">
+                maestro<span className="text-fiverr-green">.</span>
+              </div>
+              <p className="text-sm text-fiverr-text-muted leading-relaxed">
+                {t('footerDesc') || 'Платформа для поиска проверенных специалистов и фрилансеров в Узбекистане.'}
+              </p>
+            </div>
+
+            {/* Links */}
+            <div>
+              <h4 className="font-bold text-heading mb-4 text-sm uppercase tracking-wider">{t('categories') || 'Категории'}</h4>
+              <div className="space-y-2">
+                {['Репетиторы', 'Мастера по ремонту', 'Фрилансеры', 'Мастера красоты'].map(cat => (
+                  <a key={cat} href="#" className="block text-sm text-fiverr-text-muted hover:text-fiverr-green transition-colors">{t(cat) || cat}</a>
+                ))}
+              </div>
+            </div>
+            <div>
+              <h4 className="font-bold text-heading mb-4 text-sm uppercase tracking-wider">{t('aboutService') || 'О сервисе'}</h4>
+              <div className="space-y-2">
+                <a href="#" className="block text-sm text-fiverr-text-muted hover:text-fiverr-green transition-colors">{t('aboutService') || 'О сервисе'}</a>
+                <a href="#" className="block text-sm text-fiverr-text-muted hover:text-fiverr-green transition-colors">{t('help') || 'Помощь'}</a>
+                <a href="#" className="block text-sm text-fiverr-text-muted hover:text-fiverr-green transition-colors">{t('rules') || 'Правила'}</a>
+              </div>
+            </div>
+            <div>
+              <h4 className="font-bold text-heading mb-4 text-sm uppercase tracking-wider">{t('forSpecialists') || 'Для специалистов'}</h4>
+              <div className="space-y-2">
+                <a href="#" className="block text-sm text-fiverr-text-muted hover:text-fiverr-green transition-colors">{t('becomeSpecialist') || 'Стать специалистом'}</a>
+                <a href="#" className="block text-sm text-fiverr-text-muted hover:text-fiverr-green transition-colors">{t('getMoreOrders') || 'Получайте заказы'}</a>
+              </div>
+            </div>
+          </div>
+
+          <div className="pt-8 border-t border-fiverr-border flex flex-col md:flex-row justify-between items-center gap-4">
+            <p className="text-fiverr-text-dim text-sm">&copy; 2026 Maestro. {t('rights') || 'Все права защищены'}</p>
+            <div className="flex items-center gap-4">
+              <span className="text-fiverr-text-dim text-sm">Telegram</span>
+              <span className="text-fiverr-text-dim text-sm">Instagram</span>
+              <span className="text-fiverr-text-dim text-sm">YouTube</span>
+            </div>
+          </div>
         </div>
       </footer>
     </div>

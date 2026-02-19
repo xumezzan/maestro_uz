@@ -1,26 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { MapPin, User, Menu, Moon, Sun, PlusCircle, Search, LogOut, Globe, MessageSquare, ArrowUpRight, LayoutGrid, X, Briefcase } from 'lucide-react';
+import { MapPin, User, Menu, Moon, Sun, PlusCircle, Search, LogOut, Globe, MessageSquare, ArrowUpRight, LayoutGrid, X, Briefcase, Bell, ChevronDown } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
+import { useTheme } from '../context/ThemeContext';
 import { UserRole } from '../types';
 
-interface HeaderProps {
-  isDarkMode: boolean;
-  toggleTheme: () => void;
-}
-
-export const Header: React.FC<HeaderProps> = ({ isDarkMode, toggleTheme }) => {
+export const Header: React.FC = () => {
   const { role, currentUser, logout, conversations } = useAppContext();
   const { t, language, setLanguage } = useLanguage();
+  const { isDark, toggleTheme } = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
-  // Determine if the current view is for a Specialist
   const isSpecialist = role === UserRole.SPECIALIST;
 
-  // Close mobile menu when route changes
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 10);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   useEffect(() => {
     setIsMenuOpen(false);
   }, [location.pathname]);
@@ -36,216 +39,337 @@ export const Header: React.FC<HeaderProps> = ({ isDarkMode, toggleTheme }) => {
   };
 
   const handleRoleSwitch = () => {
-      // Logic to switch between Client and Specialist views/landing pages
-      if (currentUser) {
-          logout(); // Simple toggle for demo: logout to switch persona
-          if (isSpecialist) navigate('/'); // Go to Client landing
-          else navigate('/become-specialist'); // Go to Specialist landing
-      } else {
-          // Guest mode toggle
-          if (location.pathname === '/become-specialist') navigate('/');
-          else navigate('/become-specialist');
-      }
-      setIsMenuOpen(false);
+    if (currentUser) {
+      logout();
+      if (isSpecialist) navigate('/');
+      else navigate('/become-specialist');
+    } else {
+      if (location.pathname === '/become-specialist') navigate('/');
+      else navigate('/become-specialist');
+    }
+    setIsMenuOpen(false);
+  };
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
+    }
   };
 
   const unreadCount = conversations.reduce((acc, conv) => {
-      return acc + (conv.messages.length > 0 && !conv.messages[conv.messages.length -1].isRead && conv.messages[conv.messages.length -1].senderId !== currentUser?.id ? 1 : 0);
+    return acc + (conv.messages.length > 0 && !conv.messages[conv.messages.length - 1].isRead && conv.messages[conv.messages.length - 1].senderId !== currentUser?.id ? 1 : 0);
   }, 0);
 
+  const categories = [
+    { label: t('Репетиторы') || 'Репетиторы', path: '/search?category=Репетиторы' },
+    { label: t('Мастера по ремонту') || 'Ремонт', path: '/search?category=Ремонт' },
+    { label: t('Фрилансеры') || 'Фриланс', path: '/search?category=IT и фриланс' },
+    { label: t('Мастера красоты') || 'Красота', path: '/search?category=Красота' },
+    { label: t('Спортивные тренеры') || 'Спорт', path: '/search?category=Спорт' },
+  ];
+
   return (
-    <header className="bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 sticky top-0 z-50 transition-colors duration-200 pt-[env(safe-area-inset-top)]">
-      <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between relative">
-        
-        {/* Left Side: Logo & Location */}
-        <div className="flex items-center gap-4 lg:gap-8">
-          <Link to={isSpecialist ? "/specialist-dashboard" : "/"} className="text-3xl font-extrabold flex items-center tracking-tighter">
-            <span className="bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent">Maestro</span>
-          </Link>
-          
-          <div className="hidden md:flex items-center text-gray-900 dark:text-white font-medium gap-1 text-sm hover:text-primary-600 transition-colors cursor-pointer group border-r border-gray-200 dark:border-slate-700 pr-6 mr-2">
-            <MapPin className="w-4 h-4 text-gray-400 group-hover:text-primary-600" />
-            <span>{t('tashkent')}</span>
-          </div>
+    <>
+      {/* Main Header */}
+      <header
+        className={`sticky top-0 z-50 transition-all duration-300 border-b ${scrolled ? (isDark ? 'shadow-lg shadow-black/30' : 'shadow-md shadow-black/10') : ''
+          }`}
+        style={{
+          backgroundColor: 'var(--page-bg)',
+          borderColor: 'var(--fiverr-border)',
+        }}
+      >
+        <div className="fiverr-container">
+          <div className="flex items-center justify-between h-16">
 
-          {/* Catalog is ONLY for Clients/Guests. Specialists see Orders on dashboard. */}
-          {!isSpecialist && (
-            <Link 
-                to="/categories" 
-                className="hidden md:flex items-center gap-2 text-sm font-bold text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
-            >
-                <LayoutGrid className="w-4 h-4" />
-                <span>{t('catalog')}</span>
+            {/* Logo */}
+            <Link to={isSpecialist ? "/specialist-dashboard" : "/"} className="flex items-center gap-1 group flex-shrink-0">
+              <span className="text-2xl font-black text-heading tracking-tight">
+                maestro
+              </span>
+              <span className="text-2xl font-black text-fiverr-green">.</span>
             </Link>
-          )}
-        </div>
 
-        {/* Right Side: Navigation & Actions */}
-        <div className="flex items-center gap-4">
-          
-          {/* Role Switcher (Top Right) */}
-          <button 
-             onClick={handleRoleSwitch}
-             className="hidden lg:flex items-center gap-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors mr-2"
-          >
-             {isSpecialist ? t('iAmClient') : t('iAmSpecialist')}
-             <ArrowUpRight className="w-3 h-3" />
-          </button>
+            {/* Search Bar - Desktop */}
+            <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-xl mx-8">
+              <div className="flex w-full rounded-lg overflow-hidden" style={{ border: '1px solid var(--fiverr-border)' }}>
+                <input
+                  type="text"
+                  className="fiverr-input rounded-none border-0 py-2.5"
+                  placeholder={t('searchPlaceholder') || 'Найти услугу...'}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+                <button
+                  type="submit"
+                  className="px-5 bg-fiverr-green hover:bg-fiverr-green-dark text-white transition-colors"
+                >
+                  <Search className="w-5 h-5" />
+                </button>
+              </div>
+            </form>
 
-          {/* Primary Actions */}
-          <nav className="hidden md:flex items-center gap-4 text-sm font-medium">
-            {!isSpecialist && currentUser && (
-                // CLIENT VIEW
-                <Link to="/create-task" className={`flex items-center gap-1 px-4 py-2 rounded-lg transition-colors ${location.pathname === '/create-task' ? 'bg-gradient-to-r from-primary-600 to-indigo-600 text-white shadow-md' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700'}`}>
-                    <PlusCircle className="w-4 h-4" />
-                    <span>{t('createOrder')}</span>
+            {/* Right Actions */}
+            <div className="flex items-center gap-1 md:gap-3">
+
+              {/* Theme Toggle */}
+              <button
+                onClick={toggleTheme}
+                className="p-2 rounded-lg transition-colors"
+                style={{ color: 'var(--fiverr-text-muted)' }}
+                title={isDark ? 'Светлая тема' : 'Тёмная тема'}
+              >
+                {isDark
+                  ? <Sun className="w-5 h-5 hover:text-fiverr-yellow" />
+                  : <Moon className="w-5 h-5 hover:text-fiverr-blue" />
+                }
+              </button>
+
+              {/* Language */}
+              <button
+                onClick={toggleLanguage}
+                className="hidden sm:flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-semibold transition-colors uppercase"
+                style={{ color: 'var(--fiverr-text-muted)' }}
+              >
+                <Globe className="w-4 h-4" />
+                {language}
+              </button>
+
+              {/* Create Task - for clients */}
+              {!isSpecialist && currentUser && (
+                <Link
+                  to="/create-task"
+                  className="hidden md:flex items-center gap-2 fiverr-btn fiverr-btn-primary text-sm py-2"
+                >
+                  <PlusCircle className="w-4 h-4" />
+                  <span>{t('createOrder')}</span>
                 </Link>
-            )}
-            
-            {/* Specialist View: No header buttons needed as Dashboard has AI search */}
+              )}
 
-            {/* Messages */}
-            {currentUser && (
-               <Link to="/messages" className="relative p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-full transition-colors">
+              {/* Messages */}
+              {currentUser && (
+                <Link
+                  to="/messages"
+                  className="relative p-2 rounded-lg transition-colors"
+                  style={{ color: 'var(--fiverr-text-muted)' }}
+                >
                   <MessageSquare className="w-5 h-5" />
                   {unreadCount > 0 && (
-                      <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-primary-600 rounded-full border-2 border-white dark:border-slate-800"></span>
+                    <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-fiverr-red text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                      {unreadCount}
+                    </span>
                   )}
-               </Link>
-            )}
-          </nav>
-
-          {/* Utilities */}
-          <div className="flex items-center gap-2 border-l border-gray-200 dark:border-slate-700 pl-4">
-            <button 
-                onClick={toggleLanguage}
-                className="hidden sm:flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors uppercase"
-            >
-                {language}
-            </button>
-
-            <button 
-                onClick={toggleTheme}
-                className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-full transition-colors"
-            >
-                {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-            </button>
-          </div>
-
-          {/* Auth */}
-          {currentUser ? (
-             <div className="flex items-center gap-2 ml-2">
-                <Link to="/profile" className="flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-slate-700 p-1 rounded-full transition-colors pr-3 border border-transparent hover:border-gray-200 dark:hover:border-slate-600">
-                    <img src={currentUser.avatarUrl} alt={currentUser.name} className="w-8 h-8 rounded-full bg-gray-200 object-cover" />
-                    <span className="hidden lg:block text-sm font-medium text-gray-700 dark:text-gray-200 max-w-[100px] truncate">{currentUser.name.split(' ')[0]}</span>
                 </Link>
-             </div>
-          ) : (
-             <Link to="/login" className="hidden md:flex items-center gap-2 text-sm font-bold text-gray-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 px-3 py-2 transition-colors">
-                <span>{t('login')}</span>
-            </Link>
-          )}
-          
-          <button 
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="md:hidden p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
-          >
-            {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-          </button>
+              )}
+
+              {/* Categories */}
+              {!isSpecialist && (
+                <Link
+                  to="/categories"
+                  className="hidden md:flex p-2 rounded-lg transition-colors"
+                  style={{ color: 'var(--fiverr-text-muted)' }}
+                >
+                  <LayoutGrid className="w-5 h-5" />
+                </Link>
+              )}
+
+              {/* Auth */}
+              {currentUser ? (
+                <div className="flex items-center gap-2 ml-1">
+                  <Link to="/profile">
+                    <img
+                      src={currentUser.avatarUrl}
+                      alt={currentUser.name}
+                      className="w-9 h-9 rounded-full object-cover ring-2 ring-fiverr-green/30 hover:ring-fiverr-green transition-all"
+                    />
+                  </Link>
+                </div>
+              ) : (
+                <div className="hidden md:flex items-center gap-2">
+                  <Link
+                    to="/login"
+                    className="px-4 py-2 text-sm font-semibold transition-colors"
+                    style={{ color: 'var(--fiverr-text-muted)' }}
+                  >
+                    {t('login')}
+                  </Link>
+                  <Link
+                    to="/register"
+                    className="fiverr-btn fiverr-btn-outline text-sm py-2"
+                  >
+                    {t('register') || 'Регистрация'}
+                  </Link>
+                </div>
+              )}
+
+              {/* Mobile Menu Toggle */}
+              <button
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                className="md:hidden p-2 rounded-lg transition-colors"
+                style={{ color: 'var(--fiverr-text-muted)' }}
+              >
+                {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
+
+        {/* Categories Sub-nav - Desktop */}
+        {!isSpecialist && (
+          <div className="hidden md:block" style={{ borderTop: '1px solid var(--fiverr-border)' }}>
+            <div className="fiverr-container">
+              <div className="flex items-center gap-6 h-11 overflow-x-auto">
+                {categories.map((cat, i) => (
+                  <Link
+                    key={i}
+                    to={cat.path}
+                    className="text-sm font-medium whitespace-nowrap transition-colors py-2 border-b-2 border-transparent hover:border-fiverr-green"
+                    style={{ color: 'var(--fiverr-text-secondary)' }}
+                  >
+                    {cat.label}
+                  </Link>
+                ))}
+                <Link
+                  to="/categories"
+                  className="text-sm font-medium text-fiverr-green hover:text-fiverr-green-dark whitespace-nowrap transition-colors py-2"
+                >
+                  {t('allServices') || 'Все услуги'} →
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
+      </header>
 
       {/* Mobile Menu */}
       {isMenuOpen && (
-        <div className="md:hidden absolute top-[calc(4rem+env(safe-area-inset-top))] left-0 right-0 bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 p-4 shadow-xl z-50 animate-in slide-in-from-top-2">
-           <div className="flex flex-col space-y-4">
-              {currentUser && (
-                  <div className="flex items-center gap-3 pb-4 border-b border-gray-100 dark:border-slate-700">
-                      <img src={currentUser.avatarUrl} alt={currentUser.name} className="w-10 h-10 rounded-full bg-gray-200 object-cover" />
-                      <div>
-                          <div className="font-bold text-gray-900 dark:text-white">{currentUser.name}</div>
-                          <div className="text-xs text-gray-500">{currentUser.email}</div>
-                      </div>
-                  </div>
-              )}
-
-              {/* Mobile Logic: Hide Catalog if Specialist */}
-              {!isSpecialist ? (
-                  <Link 
-                    to="/categories" 
-                    className="flex items-center gap-3 p-2 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 rounded-lg"
-                  >
-                      <LayoutGrid className="w-5 h-5" />
-                      <span>{t('catalog')}</span>
-                  </Link>
-              ) : (
-                  <Link 
-                    to="/specialist-dashboard" 
-                    className="flex items-center gap-3 p-2 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 rounded-lg"
-                  >
-                      <Briefcase className="w-5 h-5" />
-                      <span>{t('findOrders')}</span>
-                  </Link>
-              )}
-
-              {!isSpecialist && currentUser && (
-                <Link to="/create-task" className="flex items-center gap-3 p-2 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 rounded-lg">
-                    <PlusCircle className="w-5 h-5" />
-                    <span>{t('createOrder')}</span>
-                </Link>
-              )}
-
-              {currentUser && (
-                 <>
-                    <Link to="/messages" className="flex items-center gap-3 p-2 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 rounded-lg">
-                        <MessageSquare className="w-5 h-5" />
-                        <span>{t('messages')}</span>
-                        {unreadCount > 0 && (
-                            <span className="bg-primary-600 text-white text-xs font-bold px-2 py-0.5 rounded-full ml-auto">{unreadCount}</span>
-                        )}
-                    </Link>
-                    <Link to="/profile" className="flex items-center gap-3 p-2 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 rounded-lg">
-                        <User className="w-5 h-5" />
-                        <span>{t('myProfile')}</span>
-                    </Link>
-                 </>
-              )}
-
-              <button 
-                 onClick={handleRoleSwitch}
-                 className="flex items-center gap-3 p-2 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 rounded-lg w-full text-left"
-              >
-                 <ArrowUpRight className="w-5 h-5" />
-                 <span>{isSpecialist ? t('iAmClient') : t('iAmSpecialist')}</span>
-              </button>
-
-              <button 
-                onClick={toggleLanguage}
-                className="flex items-center gap-3 p-2 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 rounded-lg w-full text-left"
-              >
-                 <Globe className="w-5 h-5" />
-                 <span>Язык: {language.toUpperCase()}</span>
-              </button>
-              
-              <div className="border-t border-gray-100 dark:border-slate-700 pt-2 mt-2">
-                  {currentUser ? (
-                      <button 
-                        onClick={handleLogout}
-                        className="flex items-center gap-3 p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg w-full text-left"
-                      >
-                          <LogOut className="w-5 h-5" />
-                          <span>{t('logout')}</span>
-                      </button>
-                  ) : (
-                      <Link to="/login" className="flex items-center gap-3 p-2 text-primary-600 font-bold hover:bg-primary-50 dark:hover:bg-slate-700 rounded-lg">
-                          <User className="w-5 h-5" />
-                          <span>{t('login')}</span>
-                      </Link>
-                  )}
+        <div
+          className="md:hidden fixed inset-0 z-50 backdrop-blur-sm"
+          style={{ backgroundColor: 'var(--overlay-bg)' }}
+          onClick={() => setIsMenuOpen(false)}
+        >
+          <div
+            className="absolute top-0 right-0 w-80 max-w-full h-full overflow-y-auto animate-slide-in-right"
+            style={{
+              backgroundColor: 'var(--section-bg)',
+              borderLeft: '1px solid var(--fiverr-border)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-6">
+              {/* Close */}
+              <div className="flex items-center justify-between mb-8">
+                <span className="text-xl font-black text-heading">maestro<span className="text-fiverr-green">.</span></span>
+                <button onClick={() => setIsMenuOpen(false)} className="p-2" style={{ color: 'var(--fiverr-text-muted)' }}>
+                  <X className="w-6 h-6" />
+                </button>
               </div>
-           </div>
+
+              {/* Search - Mobile */}
+              <form onSubmit={handleSearch} className="mb-6">
+                <div className="flex rounded-lg overflow-hidden" style={{ border: '1px solid var(--fiverr-border)' }}>
+                  <input
+                    type="text"
+                    className="fiverr-input rounded-none border-0 py-3"
+                    placeholder={t('searchPlaceholder') || 'Найти услугу...'}
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                  <button type="submit" className="px-4 bg-fiverr-green text-white">
+                    <Search className="w-5 h-5" />
+                  </button>
+                </div>
+              </form>
+
+              {/* User Info */}
+              {currentUser && (
+                <div className="fiverr-card p-4 mb-6 flex items-center gap-3">
+                  <img src={currentUser.avatarUrl} alt={currentUser.name} className="w-12 h-12 rounded-full object-cover" />
+                  <div>
+                    <div className="font-bold text-heading">{currentUser.name}</div>
+                    <div className="text-sm" style={{ color: 'var(--fiverr-text-muted)' }}>{currentUser.email}</div>
+                  </div>
+                </div>
+              )}
+
+              {/* Nav Links */}
+              <div className="space-y-1">
+                {!currentUser && (
+                  <>
+                    <Link to="/login" className="flex items-center gap-3 p-3 rounded-xl transition-colors font-medium" style={{ color: 'var(--fiverr-text)' }}>
+                      <User className="w-5 h-5 text-fiverr-green" /> {t('login')}
+                    </Link>
+                    <Link to="/register" className="flex items-center gap-3 p-3 rounded-xl transition-colors font-medium" style={{ color: 'var(--fiverr-text)' }}>
+                      <PlusCircle className="w-5 h-5 text-fiverr-green" /> {t('register') || 'Регистрация'}
+                    </Link>
+                  </>
+                )}
+                {!isSpecialist && (
+                  <Link to="/categories" className="flex items-center gap-3 p-3 rounded-xl transition-colors font-medium" style={{ color: 'var(--fiverr-text)' }}>
+                    <LayoutGrid className="w-5 h-5 text-fiverr-green" /> {t('catalog')}
+                  </Link>
+                )}
+                {!isSpecialist && currentUser && (
+                  <Link to="/create-task" className="flex items-center gap-3 p-3 rounded-xl bg-fiverr-green text-white font-bold">
+                    <PlusCircle className="w-5 h-5" /> {t('createOrder')}
+                  </Link>
+                )}
+                {currentUser && (
+                  <Link to="/messages" className="flex items-center gap-3 p-3 rounded-xl transition-colors font-medium" style={{ color: 'var(--fiverr-text)' }}>
+                    <MessageSquare className="w-5 h-5 text-fiverr-green" /> {t('chats') || 'Сообщения'}
+                    {unreadCount > 0 && (
+                      <span className="ml-auto bg-fiverr-red text-white text-xs font-bold px-2 py-0.5 rounded-full">{unreadCount}</span>
+                    )}
+                  </Link>
+                )}
+                {currentUser && (
+                  <Link to="/profile" className="flex items-center gap-3 p-3 rounded-xl transition-colors font-medium" style={{ color: 'var(--fiverr-text)' }}>
+                    <User className="w-5 h-5 text-fiverr-green" /> {t('profile')}
+                  </Link>
+                )}
+
+                <hr style={{ borderColor: 'var(--fiverr-border)' }} className="my-3" />
+
+                {/* Theme toggle in mobile menu */}
+                <button
+                  onClick={toggleTheme}
+                  className="flex items-center gap-3 p-3 rounded-xl transition-colors w-full font-medium"
+                  style={{ color: 'var(--fiverr-text-muted)' }}
+                >
+                  {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+                  {isDark ? 'Светлая тема' : 'Тёмная тема'}
+                </button>
+
+                <button
+                  onClick={handleRoleSwitch}
+                  className="flex items-center gap-3 p-3 rounded-xl transition-colors w-full font-medium"
+                  style={{ color: 'var(--fiverr-text-muted)' }}
+                >
+                  <ArrowUpRight className="w-5 h-5" /> {isSpecialist ? t('iAmClient') : t('iAmSpecialist')}
+                </button>
+
+                <button
+                  onClick={toggleLanguage}
+                  className="flex items-center gap-3 p-3 rounded-xl transition-colors w-full font-medium"
+                  style={{ color: 'var(--fiverr-text-muted)' }}
+                >
+                  <Globe className="w-5 h-5" /> {language === 'ru' ? 'Узбекский' : 'Русский'}
+                </button>
+
+                {currentUser && (
+                  <button
+                    onClick={handleLogout}
+                    className="flex items-center gap-3 p-3 rounded-xl text-fiverr-red hover:bg-fiverr-red/10 transition-colors w-full font-medium"
+                  >
+                    <LogOut className="w-5 h-5" /> {t('exit') || 'Выйти'}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       )}
-    </header>
+    </>
   );
 };

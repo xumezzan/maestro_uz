@@ -11,13 +11,11 @@ export const SpecialistOnboardingPage: React.FC = () => {
     const { addToast } = useToast();
     const [step, setStep] = useState(1);
 
-    // File Upload Refs and State
     const profileInputRef = useRef<HTMLInputElement>(null);
     const passportInputRef = useRef<HTMLInputElement>(null);
     const [profileFile, setProfileFile] = useState<File | null>(null);
     const [passportFile, setPassportFile] = useState<File | null>(null);
 
-    // Form State
     const [formData, setFormData] = useState({
         name: '',
         surname: '',
@@ -46,8 +44,8 @@ export const SpecialistOnboardingPage: React.FC = () => {
             description: formData.description,
             priceStart: parseInt(formData.priceStart) || 0,
             location: formData.location,
-            tags: [formData.category], // Simplified
-            verified: true, // Auto-verify for demo if they passed "verification" step
+            tags: [formData.category],
+            verified: true,
             passportFile: passportFile || undefined,
             profileFile: profileFile || undefined
         });
@@ -65,86 +63,86 @@ export const SpecialistOnboardingPage: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-slate-900 py-12 transition-colors duration-200">
+        <div className="min-h-screen py-12 page-bg">
             <div className="max-w-2xl mx-auto px-4">
 
                 <div className="text-center mb-8">
-                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Стать специалистом Maestro</h1>
-                    <p className="text-gray-500 dark:text-gray-400">Находите заказы и зарабатывайте без посредников</p>
+                    <h1 className="text-3xl font-black text-white mb-2">Стать специалистом <span className="text-fiverr-green">maestro.</span></h1>
+                    <p className="text-fiverr-text-muted">Находите заказы и зарабатывайте без посредников</p>
                 </div>
 
                 {/* Steps Header */}
                 <div className="flex justify-between items-center mb-8 relative">
-                    <div className="absolute top-1/2 left-0 right-0 h-1 bg-gray-200 dark:bg-slate-700 -z-0"></div>
+                    <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-fiverr-border -z-0" />
                     {[
                         { n: 1, label: 'Аккаунт', icon: User },
                         { n: 2, label: 'Услуги', icon: Briefcase },
                         { n: 3, label: 'Проверка', icon: FileCheck }
                     ].map((s) => (
-                        <div key={s.n} className="relative z-10 flex flex-col items-center gap-2 bg-gray-50 dark:bg-slate-900 px-2">
+                        <div key={s.n} className="relative z-10 flex flex-col items-center gap-2 px-3 page-bg">
                             <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all ${step >= s.n
-                                ? 'border-primary-600 bg-primary-600 text-white'
-                                : 'border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-400'
+                                ? 'border-fiverr-green bg-fiverr-green text-white'
+                                : 'border-fiverr-border bg-fiverr-card text-fiverr-text-dim'
                                 }`}>
                                 <s.icon className="w-5 h-5" />
                             </div>
-                            <span className={`text-xs font-medium ${step >= s.n ? 'text-primary-600' : 'text-gray-400'}`}>
+                            <span className={`text-xs font-medium ${step >= s.n ? 'text-fiverr-green' : 'text-fiverr-text-dim'}`}>
                                 {s.label}
                             </span>
                         </div>
                     ))}
                 </div>
 
-                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-gray-100 dark:border-slate-700 overflow-hidden">
+                <div className="fiverr-card overflow-hidden">
 
-                    {/* Step 1: Personal Info */}
+                    {/* Step 1 */}
                     {step === 1 && (
                         <form onSubmit={handleNext} className="p-8 space-y-5">
-                            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Личные данные</h2>
+                            <h2 className="text-xl font-bold text-heading">Личные данные</h2>
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Имя</label>
-                                    <input type="text" required value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white" />
+                                    <label className="block text-sm font-medium text-fiverr-text-muted mb-1.5">Имя</label>
+                                    <input type="text" required value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className="fiverr-input" />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Фамилия</label>
-                                    <input type="text" required value={formData.surname} onChange={e => setFormData({ ...formData, surname: e.target.value })} className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white" />
+                                    <label className="block text-sm font-medium text-fiverr-text-muted mb-1.5">Фамилия</label>
+                                    <input type="text" required value={formData.surname} onChange={e => setFormData({ ...formData, surname: e.target.value })} className="fiverr-input" />
                                 </div>
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Номер телефона</label>
-                                <input type="text" required value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white" />
+                                <label className="block text-sm font-medium text-fiverr-text-muted mb-1.5">Номер телефона</label>
+                                <input type="text" required value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} className="fiverr-input" />
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
-                                <input type="email" required value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white" />
+                                <label className="block text-sm font-medium text-fiverr-text-muted mb-1.5">Email</label>
+                                <input type="email" required value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} className="fiverr-input" />
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Придумайте пароль</label>
-                                <input type="password" required value={formData.password} onChange={e => setFormData({ ...formData, password: e.target.value })} className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white" />
+                                <label className="block text-sm font-medium text-fiverr-text-muted mb-1.5">Придумайте пароль</label>
+                                <input type="password" required value={formData.password} onChange={e => setFormData({ ...formData, password: e.target.value })} className="fiverr-input" />
                             </div>
 
-                            <button type="submit" className="w-full mt-4 bg-primary-600 hover:bg-primary-700 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2">
+                            <button type="submit" className="w-full mt-4 fiverr-btn fiverr-btn-primary py-3">
                                 Далее <ArrowRight className="w-4 h-4" />
                             </button>
                         </form>
                     )}
 
-                    {/* Step 2: Professional Info */}
+                    {/* Step 2 */}
                     {step === 2 && (
                         <form onSubmit={handleNext} className="p-8 space-y-5">
-                            <h2 className="text-xl font-bold text-gray-900 dark:text-white">О вашей работе</h2>
+                            <h2 className="text-xl font-bold text-heading">О вашей работе</h2>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Основная категория</label>
+                                <label className="block text-sm font-medium text-fiverr-text-muted mb-1.5">Основная категория</label>
                                 <select
                                     value={formData.category}
                                     onChange={e => setFormData({ ...formData, category: e.target.value as ServiceCategory })}
-                                    className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+                                    className="fiverr-input"
                                 >
                                     {Object.values(ServiceCategory).map(cat => (
                                         <option key={cat} value={cat}>{cat}</option>
@@ -153,12 +151,9 @@ export const SpecialistOnboardingPage: React.FC = () => {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Город</label>
-                                <select
-                                    value={formData.location}
-                                    onChange={e => setFormData({ ...formData, location: e.target.value })}
-                                    className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
-                                >
+                                <label className="block text-sm font-medium text-fiverr-text-muted mb-1.5">Город</label>
+                                <select value={formData.location} onChange={e => setFormData({ ...formData, location: e.target.value })}
+                                    className="fiverr-input">
                                     <option value="Ташкент">Ташкент</option>
                                     <option value="Самарканд">Самарканд</option>
                                     <option value="Бухара">Бухара</option>
@@ -167,103 +162,90 @@ export const SpecialistOnboardingPage: React.FC = () => {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Опыт работы (лет)</label>
-                                <input type="number" value={formData.experience} onChange={e => setFormData({ ...formData, experience: e.target.value })} className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white" placeholder="Например: 5" />
+                                <label className="block text-sm font-medium text-fiverr-text-muted mb-1.5">Опыт работы (лет)</label>
+                                <input type="number" value={formData.experience} onChange={e => setFormData({ ...formData, experience: e.target.value })} className="fiverr-input" placeholder="Например: 5" />
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Минимальная стоимость выезда</label>
-                                <input type="number" value={formData.priceStart} onChange={e => setFormData({ ...formData, priceStart: e.target.value })} className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white" placeholder="UZS" />
+                                <label className="block text-sm font-medium text-fiverr-text-muted mb-1.5">Минимальная стоимость выезда</label>
+                                <input type="number" value={formData.priceStart} onChange={e => setFormData({ ...formData, priceStart: e.target.value })} className="fiverr-input" placeholder="UZS" />
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">О себе (что умеете делать?)</label>
-                                <textarea rows={4} value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white" placeholder="Опишите свои навыки подробно..." />
+                                <label className="block text-sm font-medium text-fiverr-text-muted mb-1.5">О себе</label>
+                                <textarea rows={4} value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} className="fiverr-input resize-none" placeholder="Опишите свои навыки подробно..." />
                             </div>
 
                             <div className="flex gap-3 mt-4">
-                                <button type="button" onClick={() => setStep(1)} className="px-6 py-3 rounded-xl border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300">Назад</button>
-                                <button type="submit" className="flex-1 bg-primary-600 hover:bg-primary-700 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2">
+                                <button type="button" onClick={() => setStep(1)} className="px-6 py-3 rounded-xl border border-fiverr-border text-fiverr-text-muted hover:border-fiverr-green hover:text-fiverr-green transition-colors">Назад</button>
+                                <button type="submit" className="flex-1 fiverr-btn fiverr-btn-primary py-3">
                                     Далее <ArrowRight className="w-4 h-4" />
                                 </button>
                             </div>
                         </form>
                     )}
 
-                    {/* Step 3: Verification */}
+                    {/* Step 3 */}
                     {step === 3 && (
                         <form onSubmit={handleFinish} className="p-8 space-y-6">
-                            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Верификация и фото</h2>
+                            <h2 className="text-xl font-bold text-heading">Верификация и фото</h2>
 
-                            <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 p-4 rounded-lg flex gap-3">
-                                <CheckCircle className="w-5 h-5 text-yellow-600 flex-shrink-0" />
-                                <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                            <div className="bg-fiverr-yellow/10 border border-fiverr-yellow/20 p-4 rounded-lg flex gap-3">
+                                <CheckCircle className="w-5 h-5 text-fiverr-yellow flex-shrink-0" />
+                                <p className="text-sm text-fiverr-yellow">
                                     Чтобы получить значок "Проверен" и доступ к заказам, загрузите фото паспорта и личное фото. Ваши данные в безопасности.
                                 </p>
                             </div>
 
-                            {/* Profile Photo Upload */}
+                            {/* Profile Photo */}
                             <div
                                 onClick={() => profileInputRef.current?.click()}
                                 className={`border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center text-center transition-all cursor-pointer ${profileFile
-                                    ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
-                                    : 'border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700/50'
+                                    ? 'border-fiverr-green bg-fiverr-green/5'
+                                    : 'border-fiverr-border hover:border-fiverr-green/50 hover:bg-white/3'
                                     }`}
                             >
                                 <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-3 ${profileFile
-                                    ? 'bg-green-100 dark:bg-green-900/40 text-green-600'
-                                    : 'bg-primary-50 dark:bg-primary-900/20 text-primary-600'
+                                    ? 'bg-fiverr-green/10 text-fiverr-green'
+                                    : 'bg-fiverr-card border border-fiverr-border text-fiverr-text-dim'
                                     }`}>
                                     {profileFile ? <CheckCircle className="w-6 h-6" /> : <Upload className="w-6 h-6" />}
                                 </div>
-                                <h3 className="font-bold text-gray-900 dark:text-white">
+                                <h3 className="font-bold text-heading">
                                     {profileFile ? 'Фото профиля загружено' : 'Загрузить фото профиля'}
                                 </h3>
-                                <p className="text-sm text-gray-500">
+                                <p className="text-sm text-fiverr-text-muted">
                                     {profileFile ? profileFile.name : 'JPG, PNG до 5MB'}
                                 </p>
-                                <input
-                                    type="file"
-                                    ref={profileInputRef}
-                                    className="hidden"
-                                    onChange={handleFileChange('profile')}
-                                />
+                                <input type="file" ref={profileInputRef} className="hidden" onChange={handleFileChange('profile')} />
                             </div>
 
-                            {/* Passport Photo Upload */}
+                            {/* Passport Photo */}
                             <div
                                 onClick={() => passportInputRef.current?.click()}
                                 className={`border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center text-center transition-all cursor-pointer ${passportFile
-                                    ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
-                                    : 'border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700/50'
+                                    ? 'border-fiverr-green bg-fiverr-green/5'
+                                    : 'border-fiverr-border hover:border-fiverr-green/50 hover:bg-white/3'
                                     }`}
                             >
                                 <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-3 ${passportFile
-                                        ? 'bg-green-100 dark:bg-green-900/40 text-green-600'
-                                        : 'bg-gray-100 dark:bg-slate-700 text-gray-500'
+                                    ? 'bg-fiverr-green/10 text-fiverr-green'
+                                    : 'bg-fiverr-card border border-fiverr-border text-fiverr-text-dim'
                                     }`}>
                                     {passportFile ? <CheckCircle className="w-6 h-6" /> : <FileCheck className="w-6 h-6" />}
                                 </div>
-                                <h3 className="font-bold text-gray-900 dark:text-white">
+                                <h3 className="font-bold text-heading">
                                     {passportFile ? 'Паспорт загружен' : 'Загрузить фото паспорта'}
                                 </h3>
-                                <p className="text-sm text-gray-500">
+                                <p className="text-sm text-fiverr-text-muted">
                                     {passportFile ? passportFile.name : 'Лицевая сторона'}
                                 </p>
-                                <input
-                                    type="file"
-                                    ref={passportInputRef}
-                                    className="hidden"
-                                    onChange={handleFileChange('passport')}
-                                />
+                                <input type="file" ref={passportInputRef} className="hidden" onChange={handleFileChange('passport')} />
                             </div>
 
                             <div className="flex gap-3 mt-4">
-                                <button type="button" onClick={() => setStep(2)} className="px-6 py-3 rounded-xl border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300">Назад</button>
-                                <button
-                                    type="submit"
-                                    className="flex-1 bg-primary-600 hover:bg-primary-700 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2"
-                                >
+                                <button type="button" onClick={() => setStep(2)} className="px-6 py-3 rounded-xl border border-fiverr-border text-fiverr-text-muted hover:border-fiverr-green hover:text-fiverr-green transition-colors">Назад</button>
+                                <button type="submit" className="flex-1 fiverr-btn fiverr-btn-primary py-3">
                                     Завершить регистрацию
                                 </button>
                             </div>

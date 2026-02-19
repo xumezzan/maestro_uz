@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DETAILED_DIRECTORY } from '../constants';
-import { ArrowRight, Search, LayoutGrid } from 'lucide-react';
+import { ArrowRight, Search, LayoutGrid, ChevronRight } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 
 export const CategoriesPage: React.FC = () => {
@@ -13,89 +13,88 @@ export const CategoriesPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-slate-900 pb-12 transition-colors duration-200">
-      
+    <div className="min-h-screen pb-20 page-bg">
+
       {/* Page Header */}
-      <div className="bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 pt-8 pb-12 px-4">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center gap-3 mb-4 text-primary-600 dark:text-primary-400">
-             <LayoutGrid className="w-6 h-6" />
-             <span className="font-bold uppercase tracking-wider text-sm">{t('catalogLabel')}</span>
+      <div className="border-b border-fiverr-border pt-8 pb-12 px-4 section-bg">
+        <div className="fiverr-container">
+          <div className="flex items-center gap-3 mb-4 text-fiverr-green">
+            <LayoutGrid className="w-5 h-5" />
+            <span className="font-bold uppercase tracking-wider text-sm">{t('catalogLabel') || 'Каталог'}</span>
           </div>
-          <h1 className="text-3xl md:text-5xl font-extrabold text-gray-900 dark:text-white mb-6">
-            {t('catalogTitle')}
+          <h1 className="text-3xl md:text-5xl font-black text-heading mb-4">
+            {t('catalogTitle') || 'Каталог услуг'}
           </h1>
-          <p className="text-xl text-gray-500 dark:text-gray-400 max-w-2xl">
-            {t('catalogSubtitle')}
+          <p className="text-lg text-fiverr-text-muted max-w-2xl">
+            {t('catalogSubtitle') || 'Найдите нужного специалиста среди тысяч проверенных профессионалов'}
           </p>
         </div>
       </div>
 
       {/* Directory Grid */}
-      <div className="max-w-7xl mx-auto px-4 -mt-8">
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <div className="fiverr-container -mt-6">
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 stagger-children">
           {DETAILED_DIRECTORY.map((category, idx) => (
-            <div 
-              key={idx} 
-              className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm hover:shadow-xl border border-gray-100 dark:border-slate-700 p-6 transition-all duration-300 group flex flex-col h-full"
-            >
-              <div 
+            <div key={idx} className="fiverr-card p-6 flex flex-col h-full group">
+              <div
                 onClick={() => handleCategoryClick(category.title)}
                 className="cursor-pointer mb-4"
               >
-                <div className="flex justify-between items-baseline mb-2">
-                  <h2 className="text-xl font-bold text-gray-900 dark:text-white group-hover:text-primary-600 transition-colors">
+                <div className="flex justify-between items-baseline mb-3">
+                  <h2 className="text-lg font-bold text-heading group-hover:text-fiverr-green transition-colors">
                     {t(category.title)}
                   </h2>
-                  <span className="text-xs font-medium bg-gray-100 dark:bg-slate-700 text-gray-500 dark:text-gray-400 px-2 py-1 rounded-full">
+                  <span className="fiverr-badge fiverr-badge-green text-xs">
                     {category.count.toLocaleString()}
                   </span>
                 </div>
-                <div className="w-12 h-1 bg-gray-100 dark:bg-slate-700 rounded-full group-hover:bg-primary-500 transition-colors duration-500"></div>
+                <div className="w-10 h-0.5 bg-fiverr-border rounded-full group-hover:bg-fiverr-green group-hover:w-16 transition-all duration-500" />
               </div>
 
-              <ul className="space-y-3 flex-grow">
+              <ul className="space-y-2.5 flex-grow">
                 {category.items.map((item, itemIdx) => (
                   <li key={itemIdx}>
-                    <button 
+                    <button
                       onClick={() => handleCategoryClick(item)}
-                      className="text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 text-sm flex items-center gap-2 transition-colors w-full text-left group/item"
+                      className="text-fiverr-text-muted hover:text-fiverr-green text-sm flex items-center gap-2 transition-colors w-full text-left group/item"
                     >
-                      <span className="w-1.5 h-1.5 rounded-full bg-gray-300 dark:bg-slate-600 group-hover/item:bg-primary-400 transition-colors"></span>
+                      <ChevronRight className="w-3 h-3 text-fiverr-border group-hover/item:text-fiverr-green transition-colors" />
                       {t(item)}
                     </button>
                   </li>
                 ))}
               </ul>
 
-              <div className="mt-6 pt-4 border-t border-gray-50 dark:border-slate-700">
-                 <button 
-                    onClick={() => handleCategoryClick(category.title)}
-                    className="text-primary-600 dark:text-primary-400 text-sm font-bold flex items-center gap-1 hover:gap-2 transition-all"
-                 >
-                    {t('viewAll')} <ArrowRight className="w-4 h-4" />
-                 </button>
+              <div className="mt-5 pt-4 border-t border-fiverr-border">
+                <button
+                  onClick={() => handleCategoryClick(category.title)}
+                  className="text-fiverr-green text-sm font-bold flex items-center gap-1 hover:gap-2 transition-all"
+                >
+                  {t('viewAll') || 'Смотреть все'} <ArrowRight className="w-4 h-4" />
+                </button>
               </div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* SEO / Bottom Promo */}
-      <div className="max-w-7xl mx-auto px-4 mt-20 text-center">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">{t('notFoundTitle')}</h2>
-        <p className="text-gray-500 dark:text-gray-400 mb-8 max-w-xl mx-auto">
-          {t('notFoundDesc')}
-        </p>
-        <button 
-           onClick={() => navigate('/create-task')}
-           className="bg-gray-900 dark:bg-white text-white dark:text-slate-900 hover:bg-gray-800 hover:dark:bg-gray-100 px-8 py-3 rounded-xl font-bold transition-colors inline-flex items-center gap-2"
-        >
+      {/* Bottom Promo */}
+      <div className="fiverr-container mt-20 text-center">
+        <div className="fiverr-card p-10 md:p-16 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-fiverr-green/5 to-transparent pointer-events-none" />
+          <h2 className="text-2xl md:text-3xl font-black text-heading mb-4 relative z-10">{t('notFoundTitle') || 'Не нашли нужную услугу?'}</h2>
+          <p className="text-fiverr-text-muted mb-8 max-w-xl mx-auto relative z-10">
+            {t('notFoundDesc') || 'Опишите задачу и получите предложения от специалистов'}
+          </p>
+          <button
+            onClick={() => navigate('/create-task')}
+            className="fiverr-btn fiverr-btn-primary text-base px-8 py-3 relative z-10"
+          >
             <Search className="w-5 h-5" />
-            {t('createOrder')}
-        </button>
+            {t('createOrder') || 'Создать заказ'}
+          </button>
+        </div>
       </div>
-
     </div>
   );
 };

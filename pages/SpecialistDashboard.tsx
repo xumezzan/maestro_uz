@@ -12,40 +12,32 @@ export const SpecialistDashboard: React.FC = () => {
     const navigate = useNavigate();
     const { t } = useLanguage();
 
-    // Filter States
     const [showFilters, setShowFilters] = useState(false);
     const [filterCategory, setFilterCategory] = useState<string>('ALL');
     const [filterCity, setFilterCity] = useState<string>('ALL');
     const [minPrice, setMinPrice] = useState<string>('');
 
-    // AI Search States
     const [searchQuery, setSearchQuery] = useState('');
     const [isSearching, setIsSearching] = useState(false);
     const [aiAnalysis, setAiAnalysis] = useState<AIAnalysisResult | null>(null);
     const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
-    // State for Response Modal
     const [selectedTask, setSelectedTask] = useState<Task | null>(null);
     const [responsePrice, setResponsePrice] = useState('');
     const [responseMessage, setResponseMessage] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
-        if (!currentUser) {
-            navigate('/login');
-        }
+        if (!currentUser) navigate('/login');
     }, [currentUser, navigate]);
 
     const handleAiSearch = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!searchQuery.trim()) return;
-
         setIsSearching(true);
-        setSelectedTags([]); // Reset tags on new search
+        setSelectedTags([]);
         try {
-            // Reset manual filters to allow AI to drive discovery
             setFilterCategory('ALL');
-
             const result = await analyzeServiceRequest(searchQuery);
             setAiAnalysis(result);
         } catch (error) {
@@ -69,27 +61,16 @@ export const SpecialistDashboard: React.FC = () => {
 
     if (!currentUser) return null;
 
-    // Filter tasks logic
     const filteredTasks = tasks.filter(t => {
-        // 1. Must be OPEN
         if (t.status !== TaskStatus.OPEN) return false;
-
-        // 2. Filter by Category (Manual)
         if (filterCategory !== 'ALL' && t.category !== filterCategory) return false;
-
-        // 3. Filter by City (Location contains the city name)
         if (filterCity !== 'ALL' && !t.location.includes(filterCity)) return false;
-
-        // 4. Filter by Min Price
         if (minPrice) {
             const taskPrice = parseInt(t.budget.replace(/\D/g, '')) || 0;
             const filterPriceVal = parseInt(minPrice) || 0;
             if (taskPrice < filterPriceVal) return false;
         }
-
-        // 5. AI Search Logic
         if (aiAnalysis) {
-            // If tags are selected manually, enforce them
             if (selectedTags.length > 0) {
                 const hasSelectedTag = selectedTags.some(tag =>
                     t.title.toLowerCase().includes(tag.toLowerCase()) ||
@@ -98,8 +79,6 @@ export const SpecialistDashboard: React.FC = () => {
                 );
                 if (!hasSelectedTag) return false;
             }
-
-            // General AI Matching: Category OR Tags OR Text
             const matchesCategory = t.category === aiAnalysis.category;
             const matchesTags = aiAnalysis.relevantTags.some(tag =>
                 t.title.toLowerCase().includes(tag.toLowerCase()) ||
@@ -107,18 +86,14 @@ export const SpecialistDashboard: React.FC = () => {
             );
             const matchesDirectText = t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 t.description.toLowerCase().includes(searchQuery.toLowerCase());
-
-            // If no specific manual tags selected, require at least one AI match
             if (selectedTags.length === 0) {
                 if (!matchesCategory && !matchesTags && !matchesDirectText) return false;
             }
         } else if (searchQuery && !aiAnalysis) {
-            // Fallback simple text search if AI wasn't triggered or failed
             const matchesDirectText = t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 t.description.toLowerCase().includes(searchQuery.toLowerCase());
             if (!matchesDirectText) return false;
         }
-
         return true;
     });
 
@@ -132,13 +107,12 @@ export const SpecialistDashboard: React.FC = () => {
     const handleOpenResponseModal = (task: Task) => {
         setSelectedTask(task);
         setResponsePrice('');
-        setResponseMessage(t('coverLetterPlaceholder')); // Use translated default
+        setResponseMessage(t('coverLetterPlaceholder'));
     };
 
     const handleSubmitResponse = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!selectedTask) return;
-
         setIsSubmitting(true);
         await addResponse(selectedTask.id, responseMessage, parseInt(responsePrice) || 0);
         setIsSubmitting(false);
@@ -150,170 +124,136 @@ export const SpecialistDashboard: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-slate-900 pb-12 transition-colors duration-200">
-            <div className="max-w-6xl mx-auto px-4 pt-8">
+        <div className="min-h-screen pb-12 page-bg">
+            <div className="fiverr-container pt-8">
 
                 <div className="flex flex-col gap-6 mb-8">
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                         <div>
-                            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('taskBoard')}</h1>
-                            <p className="text-gray-500 dark:text-gray-400">{t('foundActiveOrders').replace('{{count}}', filteredTasks.length.toString())}</p>
+                            <h1 className="text-2xl font-black text-heading">{t('taskBoard') || 'Доска заказов'}</h1>
+                            <p className="text-fiverr-text-muted">{t('foundActiveOrders')?.replace('{{count}}', filteredTasks.length.toString()) || `Активных: ${filteredTasks.length}`}</p>
                         </div>
 
                         <button
                             onClick={() => setShowFilters(!showFilters)}
-                            className={`flex items-center gap-2 px-4 py-2 border rounded-lg transition-colors shadow-sm whitespace-nowrap ${showFilters
-                                ? 'bg-primary-50 border-primary-200 text-primary-700 dark:bg-slate-700 dark:border-slate-600 dark:text-white'
-                                : 'bg-white border-gray-200 text-gray-700 dark:bg-slate-800 dark:border-slate-700 dark:text-gray-300 hover:bg-gray-50'
+                            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors text-sm font-medium ${showFilters
+                                ? 'bg-fiverr-green text-white'
+                                : 'fiverr-card text-fiverr-text-muted hover:border-fiverr-green hover:text-fiverr-green'
                                 }`}
                         >
                             {showFilters ? <X className="w-4 h-4" /> : <Filter className="w-4 h-4" />}
-                            <span>{showFilters ? t('hideFilters') : t('showFilters')}</span>
+                            <span>{showFilters ? t('hideFilters') || 'Скрыть' : t('showFilters') || 'Фильтры'}</span>
                         </button>
                     </div>
 
-                    {/* Smart Search Bar */}
+                    {/* Search Bar */}
                     <form onSubmit={handleAiSearch} className="relative w-full max-w-3xl">
-                        <div className="relative group">
-                            <div className="absolute inset-0 bg-gradient-to-r from-violet-600 to-indigo-600 rounded-xl blur opacity-25 group-hover:opacity-40 transition duration-1000"></div>
-                            <div className="relative flex items-center bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 overflow-hidden">
-                                <Search className="w-5 h-5 text-gray-400 ml-4 flex-shrink-0" />
-                                <input
-                                    type="text"
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    placeholder={t('smartSearchPlaceholder')}
-                                    className="w-full px-4 py-3 bg-transparent border-none focus:ring-0 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
-                                />
-                                {searchQuery && (
-                                    <button
-                                        type="button"
-                                        onClick={clearSearch}
-                                        className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 mr-1"
-                                    >
-                                        <X className="w-4 h-4" />
-                                    </button>
-                                )}
-                                <button
-                                    type="submit"
-                                    disabled={isSearching || !searchQuery}
-                                    className="m-1 px-4 py-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white rounded-lg font-medium transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    {isSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                                    <span className="hidden sm:inline">{t('aiSearch')}</span>
+                        <div className="flex items-center fiverr-card overflow-hidden" style={{ border: '2px solid #333355' }}>
+                            <Search className="w-5 h-5 text-fiverr-text-dim ml-4 flex-shrink-0" />
+                            <input
+                                type="text"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                placeholder={t('smartSearchPlaceholder') || 'AI поиск заказов...'}
+                                className="w-full px-4 py-3 bg-transparent border-none outline-none text-heading placeholder-fiverr-text-dim"
+                            />
+                            {searchQuery && (
+                                <button type="button" onClick={clearSearch} className="p-2 text-fiverr-text-muted hover:text-heading mr-1">
+                                    <X className="w-4 h-4" />
                                 </button>
-                            </div>
+                            )}
+                            <button
+                                type="submit"
+                                disabled={isSearching || !searchQuery}
+                                className="m-1 px-4 py-2 bg-fiverr-green hover:bg-fiverr-green-dark text-white rounded-lg font-medium transition-all flex items-center gap-2 disabled:opacity-50"
+                            >
+                                {isSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                                <span className="hidden sm:inline">{t('aiSearch') || 'AI Поиск'}</span>
+                            </button>
                         </div>
                     </form>
                 </div>
 
                 {/* Filter Panel */}
                 {showFilters && (
-                    <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-gray-200 dark:border-slate-700 shadow-sm mb-8 animate-in fade-in slide-in-from-top-2">
+                    <div className="fiverr-card p-6 mb-8 animate-fade-in">
                         <div className="grid md:grid-cols-3 gap-6">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('category')}</label>
-                                <select
-                                    value={filterCategory}
-                                    onChange={(e) => setFilterCategory(e.target.value)}
-                                    className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none"
-                                >
-                                    <option value="ALL">{t('allCategories')}</option>
+                                <label className="block text-sm font-medium text-fiverr-text-muted mb-1.5">{t('category') || 'Категория'}</label>
+                                <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}
+                                    className="fiverr-input">
+                                    <option value="ALL">{t('allCategories') || 'Все'}</option>
                                     {Object.values(ServiceCategory).map(cat => (
                                         <option key={cat} value={cat}>{t(cat)}</option>
                                     ))}
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('city')}</label>
-                                <select
-                                    value={filterCity}
-                                    onChange={(e) => setFilterCity(e.target.value)}
-                                    className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none"
-                                >
-                                    <option value="ALL">{t('allUzbekistan')}</option>
+                                <label className="block text-sm font-medium text-fiverr-text-muted mb-1.5">{t('city') || 'Город'}</label>
+                                <select value={filterCity} onChange={(e) => setFilterCity(e.target.value)}
+                                    className="fiverr-input">
+                                    <option value="ALL">{t('allUzbekistan') || 'Весь Узбекистан'}</option>
                                     {CITIES.map(city => (
                                         <option key={city} value={city}>{city}</option>
                                     ))}
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('minBudget')}</label>
+                                <label className="block text-sm font-medium text-fiverr-text-muted mb-1.5">{t('minBudget') || 'Мин. бюджет'}</label>
                                 <div className="relative">
-                                    <Banknote className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
-                                    <input
-                                        type="number"
-                                        value={minPrice}
-                                        onChange={(e) => setMinPrice(e.target.value)}
-                                        placeholder={t('exampleBudget') || "100000"}
-                                        className="w-full pl-9 pr-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none"
-                                    />
+                                    <Banknote className="absolute left-3 top-3 w-4 h-4 text-fiverr-text-dim" />
+                                    <input type="number" value={minPrice} onChange={(e) => setMinPrice(e.target.value)}
+                                        placeholder="100000" className="fiverr-input pl-9" />
                                 </div>
                             </div>
                         </div>
                         <div className="mt-4 flex justify-end">
-                            <button
-                                onClick={resetFilters}
-                                className="text-sm text-gray-500 hover:text-primary-600 underline"
-                            >
-                                {t('resetAll')}
-                            </button>
+                            <button onClick={resetFilters} className="text-sm text-fiverr-green hover:underline">{t('resetAll') || 'Сбросить'}</button>
                         </div>
                     </div>
                 )}
 
                 <div className="grid lg:grid-cols-4 gap-6">
 
-                    {/* Sidebar with AI Analysis & Stats */}
+                    {/* Sidebar */}
                     <div className="lg:col-span-1 space-y-6">
-                        {/* AI Analysis Card */}
                         {aiAnalysis && (
-                            <div className="bg-white dark:bg-slate-800 rounded-xl border border-primary-100 dark:border-slate-700 shadow-sm p-5 sticky top-24 transition-colors duration-200 animate-in fade-in slide-in-from-left-2">
-                                <div className="flex items-center gap-2 mb-4 text-primary-700 dark:text-primary-400">
+                            <div className="fiverr-card p-5 sticky top-24 animate-fade-in">
+                                <div className="flex items-center gap-2 mb-4 text-fiverr-green">
                                     <Sparkles className="w-5 h-5 fill-current" />
-                                    <span className="font-bold text-sm uppercase tracking-wide">{t('aiMatching')}</span>
+                                    <span className="font-bold text-sm uppercase tracking-wide">{t('aiMatching') || 'AI Анализ'}</span>
                                 </div>
-
                                 <div className="space-y-4">
                                     <div>
-                                        <span className="text-xs text-gray-400 dark:text-gray-500 font-bold uppercase">{t('category')}</span>
-                                        <p className="text-sm text-gray-800 dark:text-gray-200 font-medium">{t(aiAnalysis.category)}</p>
+                                        <span className="text-xs text-fiverr-text-dim font-bold uppercase">{t('category') || 'Категория'}</span>
+                                        <p className="text-sm text-heading font-medium">{t(aiAnalysis.category)}</p>
                                     </div>
-
                                     <div>
-                                        <span className="text-xs text-gray-400 dark:text-gray-500 font-bold uppercase">{t('aiPriceRef')}</span>
-                                        <div className="mt-2 bg-gradient-to-r from-emerald-500 to-teal-600 text-white px-3 py-2 rounded-lg shadow-sm text-center font-bold flex items-center justify-center gap-2 text-xs">
-                                            <Coins className="w-3 h-3 opacity-90" />
+                                        <span className="text-xs text-fiverr-text-dim font-bold uppercase">{t('aiPriceRef') || 'Цена'}</span>
+                                        <div className="mt-2 bg-fiverr-green/10 border border-fiverr-green/20 text-fiverr-green px-3 py-2 rounded-lg text-center font-bold flex items-center justify-center gap-2 text-xs">
+                                            <Coins className="w-3 h-3" />
                                             <span>{aiAnalysis.estimatedPriceRange}</span>
                                         </div>
                                     </div>
-
-                                    {/* Tags Filter */}
                                     {aiAnalysis.relevantTags.length > 0 && (
-                                        <div className="pt-4 border-t border-gray-100 dark:border-slate-700">
+                                        <div className="pt-4 border-t border-fiverr-border">
                                             <div className="flex justify-between items-center mb-2">
-                                                <span className="text-xs text-gray-400 dark:text-gray-500 font-bold uppercase flex items-center gap-1">
-                                                    <Filter className="w-3 h-3" /> {t('tags')}
+                                                <span className="text-xs text-fiverr-text-dim font-bold uppercase flex items-center gap-1">
+                                                    <Filter className="w-3 h-3" /> {t('tags') || 'Теги'}
                                                 </span>
                                                 {selectedTags.length > 0 && (
-                                                    <button
-                                                        onClick={() => setSelectedTags([])}
-                                                        className="text-xs text-red-500 hover:text-red-600 font-medium flex items-center gap-1"
-                                                    >
-                                                        <X className="w-3 h-3" /> {t('reset')}
+                                                    <button onClick={() => setSelectedTags([])} className="text-xs text-fiverr-red font-medium flex items-center gap-1">
+                                                        <X className="w-3 h-3" /> {t('reset') || 'Сброс'}
                                                     </button>
                                                 )}
                                             </div>
                                             <div className="flex flex-wrap gap-2">
                                                 {aiAnalysis.relevantTags.map(tag => (
-                                                    <button
-                                                        key={tag}
-                                                        onClick={() => toggleTag(tag)}
-                                                        className={`text-xs px-2.5 py-1.5 rounded-lg border transition-all duration-200 flex items-center gap-1.5 ${selectedTags.includes(tag)
-                                                            ? 'bg-primary-600 text-white border-primary-600 shadow-sm'
-                                                            : 'bg-gray-50 dark:bg-slate-700 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-slate-600 hover:border-primary-300 dark:hover:border-slate-500'
-                                                            }`}
-                                                    >
+                                                    <button key={tag} onClick={() => toggleTag(tag)}
+                                                        className={`text-xs px-2.5 py-1.5 rounded-lg border transition-all flex items-center gap-1.5 ${selectedTags.includes(tag)
+                                                            ? 'bg-fiverr-green text-white border-fiverr-green'
+                                                            : 'text-fiverr-text-muted border-fiverr-border hover:border-fiverr-green hover:text-fiverr-green'
+                                                            }`}>
                                                         <Tag className="w-3 h-3" />
                                                         {t(tag) || tag}
                                                     </button>
@@ -326,38 +266,36 @@ export const SpecialistDashboard: React.FC = () => {
                         )}
 
                         {!aiAnalysis && (
-                            <div className="bg-gradient-to-br from-violet-600 to-indigo-900 rounded-2xl p-6 text-white">
-                                <h3 className="text-xl font-bold mb-2">{t('getMoreOrders')}</h3>
-                                <p className="text-indigo-100 mb-4 text-sm">{t('verifyDocsDesc')}</p>
-                                <button className="w-full bg-white text-primary-700 font-bold py-2 rounded-lg text-sm hover:bg-primary-50 transition-colors">
-                                    {t('getVerified')}
+                            <div className="rounded-2xl p-6 text-white relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #1dbf73 0%, #0e8c56 100%)' }}>
+                                <h3 className="text-xl font-bold mb-2">{t('getMoreOrders') || 'Больше заказов'}</h3>
+                                <p className="text-white/80 mb-4 text-sm">{t('verifyDocsDesc') || 'Подтвердите документы'}</p>
+                                <button className="w-full bg-white text-fiverr-green font-bold py-2 rounded-lg text-sm hover:bg-white/90 transition-colors">
+                                    {t('getVerified') || 'Подтвердить'}
                                 </button>
                             </div>
                         )}
 
-                        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-slate-700 p-6 hidden lg:block">
-                            <h3 className="font-bold text-gray-900 dark:text-white mb-4">{t('statistics')}</h3>
+                        <div className="fiverr-card p-6 hidden lg:block">
+                            <h3 className="font-bold text-heading mb-4">{t('statistics') || 'Статистика'}</h3>
                             <div className="space-y-4">
                                 <div className="flex justify-between items-center text-sm">
-                                    <span className="text-gray-500 dark:text-gray-400">{t('availableResponses')}</span>
-                                    <span className="font-bold text-gray-900 dark:text-white">
-                                        {taskResponses.filter(r => r.specialistId === currentUser.specialistProfile?.id).length}
-                                    </span>
+                                    <span className="text-fiverr-text-muted">{t('availableResponses') || 'Отклики'}</span>
+                                    <span className="font-bold text-heading">{taskResponses.filter(r => r.specialistId === currentUser.specialistProfile?.id).length}</span>
                                 </div>
                                 <div className="flex justify-between items-center text-sm">
-                                    <span className="text-gray-500 dark:text-gray-400">{t('profileViews')}</span>
-                                    <span className="font-bold text-gray-900 dark:text-white">0</span>
+                                    <span className="text-fiverr-text-muted">{t('profileViews') || 'Просмотры'}</span>
+                                    <span className="font-bold text-heading">0</span>
                                 </div>
                                 <div className="flex justify-between items-center text-sm">
-                                    <span className="text-gray-500 dark:text-gray-400">{t('rating')}</span>
-                                    <span className="font-bold text-yellow-500 flex items-center gap-1">
+                                    <span className="text-fiverr-text-muted">{t('rating') || 'Рейтинг'}</span>
+                                    <span className="font-bold text-fiverr-yellow flex items-center gap-1">
                                         {currentUser.specialistProfile?.rating ? (
                                             <>
                                                 {currentUser.specialistProfile.rating.toFixed(1)}
-                                                <span className="text-gray-400 text-xs">({currentUser.specialistProfile.reviewsCount})</span>
+                                                <span className="text-fiverr-text-dim text-xs">({currentUser.specialistProfile.reviewsCount})</span>
                                             </>
                                         ) : (
-                                            <span className="text-gray-400 text-sm font-normal">{t('noRatingsYet')}</span>
+                                            <span className="text-fiverr-text-dim text-sm font-normal">{t('noRatingsYet') || '—'}</span>
                                         )}
                                     </span>
                                 </div>
@@ -371,59 +309,56 @@ export const SpecialistDashboard: React.FC = () => {
                             filteredTasks.map(task => {
                                 const responded = hasResponded(task.id);
                                 return (
-                                    <div key={task.id} className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-gray-200 dark:border-slate-700 hover:shadow-md transition-all group relative">
+                                    <div key={task.id} className="fiverr-card p-6 group relative">
                                         {responded && (
-                                            <div className="absolute top-4 right-4 text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1">
+                                            <div className="absolute top-4 right-4 fiverr-badge fiverr-badge-green">
                                                 <CheckCircle className="w-3 h-3" />
-                                                {t('youResponded')}
+                                                {t('youResponded') || 'Вы откликнулись'}
                                             </div>
                                         )}
 
                                         <div className="flex justify-between items-start mb-3">
-                                            <span className="text-xs font-bold uppercase tracking-wider text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20 px-2 py-1 rounded">
-                                                {t(task.category)}
-                                            </span>
-                                            <span className="text-sm text-gray-400 flex items-center gap-1">
+                                            <span className="fiverr-badge fiverr-badge-green text-xs">{t(task.category)}</span>
+                                            <span className="text-sm text-fiverr-text-dim flex items-center gap-1">
                                                 <Clock className="w-3 h-3" />
                                                 {new Date(task.createdAt).toLocaleDateString()}
                                             </span>
                                         </div>
 
-                                        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2 group-hover:text-primary-600 transition-colors">
+                                        <h3 className="text-lg font-bold text-heading mb-2 group-hover:text-fiverr-green transition-colors">
                                             {task.title}
                                         </h3>
 
-                                        <p className="text-gray-600 dark:text-gray-300 text-sm mb-4 line-clamp-2">
+                                        <p className="text-fiverr-text-muted text-sm mb-4 line-clamp-2">
                                             {task.description}
                                         </p>
 
                                         <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
-                                            <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+                                            <div className="flex items-center gap-2 text-fiverr-text-dim">
                                                 <MapPin className="w-4 h-4" />
                                                 {task.location}
                                             </div>
-                                            <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+                                            <div className="flex items-center gap-2 text-fiverr-text-dim">
                                                 <Calendar className="w-4 h-4" />
                                                 {task.date || 'По договоренности'}
                                             </div>
                                         </div>
 
-                                        <div className="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-slate-700">
-                                            <div className="font-bold text-lg text-primary-600 dark:text-primary-400">
+                                        <div className="flex items-center justify-between pt-4 border-t border-fiverr-border">
+                                            <div className="font-bold text-lg text-fiverr-green">
                                                 {task.budget}
                                             </div>
-                                            {/* Only show respond button for SPECIALISTS */}
                                             {currentUser?.role === UserRole.SPECIALIST && (
                                                 !responded ? (
                                                     <button
                                                         onClick={() => handleOpenResponseModal(task)}
-                                                        className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                                                        className="fiverr-btn fiverr-btn-primary text-sm px-5 py-2"
                                                     >
-                                                        {t('respond')}
+                                                        {t('respond') || 'Откликнуться'}
                                                     </button>
                                                 ) : (
-                                                    <button disabled className="bg-gray-100 dark:bg-slate-700 text-gray-400 px-4 py-2 rounded-lg text-sm font-medium cursor-not-allowed">
-                                                        {t('responseSent')}
+                                                    <button disabled className="px-4 py-2 rounded-lg text-sm font-medium cursor-not-allowed text-fiverr-text-dim bg-white/5 border border-fiverr-border">
+                                                        {t('responseSent') || 'Отклик отправлен'}
                                                     </button>
                                                 )
                                             )}
@@ -432,18 +367,16 @@ export const SpecialistDashboard: React.FC = () => {
                                 );
                             })
                         ) : (
-                            <div className="bg-white dark:bg-slate-800 rounded-xl p-12 text-center border-2 border-dashed border-gray-200 dark:border-slate-700">
-                                <div className="w-16 h-16 bg-gray-50 dark:bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-400">
+                            <div className="fiverr-card p-12 text-center border-2 border-dashed border-fiverr-border">
+                                <div className="w-16 h-16 bg-fiverr-card border border-fiverr-border rounded-full flex items-center justify-center mx-auto mb-4 text-fiverr-text-dim">
                                     <Search className="w-8 h-8" />
                                 </div>
-                                <h3 className="font-bold text-gray-900 dark:text-white text-lg">{t('noTasksFound')}</h3>
-                                <p className="text-gray-500 dark:text-gray-400 mt-1 mb-4">
-                                    {aiAnalysis
-                                        ? t('aiNoTasksDesc')
-                                        : t('noTasksFilterDesc')}
+                                <h3 className="font-bold text-heading text-lg">{t('noTasksFound') || 'Заказов не найдено'}</h3>
+                                <p className="text-fiverr-text-muted mt-1 mb-4">
+                                    {aiAnalysis ? t('aiNoTasksDesc') : t('noTasksFilterDesc') || 'Попробуйте изменить фильтры'}
                                 </p>
-                                <button onClick={resetFilters} className="text-primary-600 font-bold hover:underline">
-                                    {t('resetFilters')}
+                                <button onClick={resetFilters} className="text-fiverr-green font-bold hover:underline">
+                                    {t('resetFilters') || 'Сбросить фильтры'}
                                 </button>
                             </div>
                         )}
@@ -453,44 +386,44 @@ export const SpecialistDashboard: React.FC = () => {
 
             {/* Response Modal */}
             {selectedTask && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
-                        <div className="p-4 border-b border-gray-200 dark:border-slate-700 flex justify-between items-center">
-                            <h3 className="font-bold text-lg text-gray-900 dark:text-white">{t('responseToTask')}</h3>
-                            <button onClick={() => setSelectedTask(null)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
+                    <div className="fiverr-card w-full max-w-md overflow-hidden">
+                        <div className="p-4 border-b border-fiverr-border flex justify-between items-center">
+                            <h3 className="font-bold text-lg text-heading">{t('responseToTask') || 'Отклик'}</h3>
+                            <button onClick={() => setSelectedTask(null)} className="text-fiverr-text-muted hover:text-heading">
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
 
                         <div className="p-6">
-                            <div className="mb-6 bg-gray-50 dark:bg-slate-700/50 p-3 rounded-lg">
-                                <h4 className="font-medium text-gray-900 dark:text-white text-sm mb-1">{selectedTask.title}</h4>
-                                <span className="text-xs text-primary-600 dark:text-primary-400 font-bold">{selectedTask.budget}</span>
+                            <div className="mb-6 bg-white/5 border border-fiverr-border p-3 rounded-lg">
+                                <h4 className="font-medium text-heading text-sm mb-1">{selectedTask.title}</h4>
+                                <span className="text-xs text-fiverr-green font-bold">{selectedTask.budget}</span>
                             </div>
 
                             <form onSubmit={handleSubmitResponse} className="space-y-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('offerPrice')}</label>
+                                    <label className="block text-sm font-medium text-fiverr-text-muted mb-1.5">{t('offerPrice') || 'Ваша цена'}</label>
                                     <div className="relative">
-                                        <Banknote className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+                                        <Banknote className="absolute left-3 top-3 w-4 h-4 text-fiverr-text-dim" />
                                         <input
                                             type="number"
                                             required
                                             value={responsePrice}
                                             onChange={(e) => setResponsePrice(e.target.value)}
                                             placeholder="100000"
-                                            className="w-full pl-9 pr-4 py-2 rounded-xl border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none"
+                                            className="fiverr-input pl-9"
                                         />
                                     </div>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('coverLetter')}</label>
+                                    <label className="block text-sm font-medium text-fiverr-text-muted mb-1.5">{t('coverLetter') || 'Сопроводительное'}</label>
                                     <textarea
                                         required
                                         rows={4}
                                         value={responseMessage}
                                         onChange={(e) => setResponseMessage(e.target.value)}
-                                        className="w-full p-3 rounded-xl border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none resize-none"
+                                        className="fiverr-input resize-none"
                                         placeholder={t('coverLetterPlaceholder')}
                                     />
                                 </div>
@@ -498,16 +431,15 @@ export const SpecialistDashboard: React.FC = () => {
                                 <button
                                     type="submit"
                                     disabled={isSubmitting}
-                                    className="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
+                                    className="w-full fiverr-btn fiverr-btn-primary py-3"
                                 >
-                                    {isSubmitting ? t('sending') : t('sendResponse')}
+                                    {isSubmitting ? t('sending') || 'Отправка...' : t('sendResponse') || 'Отправить отклик'}
                                 </button>
                             </form>
                         </div>
                     </div>
                 </div>
             )}
-
         </div>
     );
 };
