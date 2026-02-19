@@ -86,7 +86,7 @@ export const translations = {
     "Мастера красоты": "Мастера красоты",
     "Фрилансеры": "Фрилансеры",
     "Спортивные тренеры": "Спортивные тренеры",
-    
+
     // Sub-items
     "Начальная школа": "Начальная школа",
     "Подготовка к школе": "Подготовка к школе",
@@ -167,6 +167,7 @@ export const translations = {
     "availableResponses": "Доступно откликов",
     "profileViews": "Просмотров профиля",
     "rating": "Рейтинг",
+    "noRatingsYet": "Нет отзывов",
     "youResponded": "Вы откликнулись",
     "respond": "Откликнуться",
     "responseSent": "Отклик отправлен",
@@ -533,6 +534,7 @@ export const translations = {
     "availableResponses": "Mavjud takliflar",
     "profileViews": "Profil ko'rishlar",
     "rating": "Reyting",
+    "noRatingsYet": "Sharhlar yo'q",
     "youResponded": "Siz taklif yubordingiz",
     "respond": "Taklif yuborish",
     "responseSent": "Yuborildi",
@@ -764,7 +766,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     // @ts-ignore
     const text = translations[language][key];
     if (text) return text;
-    
+
     // Fallback to RU
     // @ts-ignore
     const fallbackText = translations['ru'][key];

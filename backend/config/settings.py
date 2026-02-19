@@ -14,6 +14,7 @@ SECRET_KEY = env('DJANGO_SECRET_KEY', default='django-insecure-change-me-in-prod
 DEBUG = env.bool('DEBUG', default=True)
 
 ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['*'])
+# Reload trigger
 
 INSTALLED_APPS = [
     'django.contrib.admin',

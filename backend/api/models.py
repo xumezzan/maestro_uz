@@ -31,7 +31,7 @@ class ServiceCategory(models.TextChoices):
 class SpecialistProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='specialist_profile')
     category = models.CharField(max_length=50, choices=ServiceCategory.choices)
-    rating = models.FloatField(default=5.0)
+    rating = models.FloatField(default=0.0)
     reviews_count = models.IntegerField(default=0)
     price_start = models.DecimalField(max_digits=12, decimal_places=0)
     description = models.TextField()
