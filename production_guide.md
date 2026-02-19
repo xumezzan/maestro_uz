@@ -9,6 +9,7 @@ We recommend the **CPX11** (or CPX21 for higher load) instance types on Hetzner 
 - **Specs**: 2 vCPU, 2GB RAM, 40GB SSD (Perfect for this project).
 - **Location**: Falkenstein or Helsinki (Usually cheapest/best connectivity).
 - **OS**: Ubuntu 22.04 LTS (or 24.04).
+- **Current IP**: `89.167.75.82`
 
 ## 2. Hetzner Setup Instructions
 1.  **Create Project**: Log in to [Hetzner Cloud Console](https://console.hetzner.com/) and create a new project "Maestro".
