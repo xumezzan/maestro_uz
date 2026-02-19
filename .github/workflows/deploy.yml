@@ -1,0 +1,31 @@
+name: Deploy to Hetzner VPS
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd app
+            git pull
+            # Create/Update .env if needed (optional, usually .env is manually managed on server)
+            # but we can ensure it exists
+            
+            # Rebuild and restart containers
+            docker compose down
+            docker compose up --build -d
+            
+            # Run migrations (safe to run multiple times)
+            docker compose exec -T backend python manage.py migrate
+            
+            # Collect static files
+            docker compose exec -T backend python manage.py collectstatic --noinput
