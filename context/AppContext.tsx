@@ -9,7 +9,8 @@ interface AppContextType {
   tasks: Task[];
   taskResponses: TaskResponse[];
   addTask: (task: Task) => void;
-  addResponse: (taskId: string, message: string, price: number) => void;
+  addResponse: (taskId: string, message: string, price: number) => Promise<void>;
+  acceptResponse: (responseId: string) => Promise<void>;
   deleteTask: (taskId: string) => void;
   currentUser: UserProfile | null;
   login: (email: string, password: string) => Promise<void>;
@@ -60,7 +61,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     date: t.date_info,
     status: t.status as TaskStatus,
     createdAt: new Date(t.created_at).getTime(),
-    responsesCount: t.responses_count || 0
+    responsesCount: t.responses_count || 0,
+    assignedSpecialist: t.assigned_specialist ? t.assigned_specialist.toString() : undefined
   });
 
   // Fetch Data on Load
@@ -136,7 +138,71 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           const taskData = await taskRes.json();
           if (Array.isArray(taskData) && taskData.length > 0) {
             const realTasks = taskData.map(mapTask);
-            setTasks(realTasks);
+          }
+        }
+
+        // 3. Responses
+        const resRes = await fetch(`${API_BASE_URL}/responses/`, {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` }
+        });
+        if (resRes.ok) {
+          const resData = await resRes.json();
+          if (Array.isArray(resData)) {
+            setTaskResponses(resData.map((r: any) => ({
+              id: r.id.toString(),
+              taskId: r.task.toString(),
+              specialistId: r.specialist.toString(),
+              specialistName: r.specialistName,
+              specialistAvatar: r.specialistAvatar,
+              specialistRating: r.specialistRating,
+              message: r.message,
+              price: Number(r.price),
+              createdAt: r.created_at
+            })));
+          }
+        }
+
+        // 4. Messages
+        const msgRes = await fetch(`${API_BASE_URL}/messages/`, {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` }
+        });
+        if (msgRes.ok) {
+          const msgData = await msgRes.json();
+          if (Array.isArray(msgData)) {
+            const convMap = new Map<string, Conversation>();
+
+            msgData.forEach((m: any) => {
+              const isMe = m.is_me;
+              // If I sent it, the other person is the receiver.
+              // If I received it, the other person is the sender.
+              const participantId = isMe ? m.receiver.toString() : m.sender.toString();
+
+              if (!convMap.has(participantId)) {
+                convMap.set(participantId, {
+                  id: `conv_${participantId}`,
+                  participantId: participantId,
+                  participantName: isMe ? m.receiver_name : m.sender_name,
+                  participantAvatar: isMe ? m.receiver_avatar : m.sender_avatar,
+                  messages: []
+                });
+              }
+
+              const conv = convMap.get(participantId)!;
+              // Update participant details if missing (e.g. from previous messages where info might be incomplete if we had that, but here we process all)
+              // Actually, just pushing the message is enough.
+
+              conv.messages.push({
+                id: m.id.toString(),
+                senderId: m.sender.toString(),
+                text: m.text,
+                timestamp: new Date(m.created_at).getTime(),
+                isRead: m.is_read,
+                mediaUrl: m.image,
+                mediaType: m.image ? 'image' : undefined
+              });
+            });
+
+            setConversations(Array.from(convMap.values()));
           }
         }
       } catch (error) {
@@ -188,23 +254,70 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch (e) { console.error(e); }
   };
 
-  const addResponse = (taskId: string, message: string, price: number) => {
+  const addResponse = async (taskId: string, message: string, price: number) => {
     if (!currentUser || currentUser.role !== UserRole.SPECIALIST || !currentUser.specialistProfile) return;
 
-    const newResponse: TaskResponse = {
-      id: `res_${Date.now()}`,
-      taskId,
-      specialistId: currentUser.specialistProfile.id,
-      specialistName: currentUser.specialistProfile.name,
-      specialistAvatar: currentUser.specialistProfile.avatarUrl,
-      specialistRating: currentUser.specialistProfile.rating,
-      message,
-      price,
-      createdAt: Date.now()
-    };
+    try {
+      const res = await fetch(`${API_BASE_URL}/responses/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
+        },
+        body: JSON.stringify({
+          task: taskId,
+          message,
+          price
+        })
+      });
 
-    setTaskResponses(prev => [newResponse, ...prev]);
-    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, responsesCount: t.responsesCount + 1 } : t));
+      if (res.ok) {
+        const r = await res.json();
+        const newResponse: TaskResponse = {
+          id: r.id.toString(),
+          taskId: r.task.toString(),
+          specialistId: r.specialist.toString(),
+          specialistName: currentUser.specialistProfile.name,
+          specialistAvatar: currentUser.specialistProfile.avatarUrl,
+          specialistRating: currentUser.specialistProfile.rating,
+          message: r.message,
+          price: Number(r.price),
+          createdAt: r.created_at
+        };
+        setTaskResponses(prev => [newResponse, ...prev]);
+        setTasks(prev => prev.map(t => t.id === taskId ? { ...t, responsesCount: t.responsesCount + 1 } : t));
+        addToast('Отклик отправлен!', 'success');
+      }
+    } catch (e) {
+      console.error("Failed to send response", e);
+      addToast('Ошибка отправки отклика', 'error');
+    }
+  };
+
+  const acceptResponse = async (responseId: string) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/responses/${responseId}/accept/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
+        }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        // Update task status locally
+        setTasks(prev => prev.map(t => t.id === data.task_id.toString() ? {
+          ...t,
+          status: TaskStatus.IN_PROGRESS,
+          // We don't have the specialist ID easily here without looking up response, 
+          // but we can find it in taskResponses
+          assignedSpecialist: taskResponses.find(r => r.id === responseId)?.specialistId
+        } : t));
+        addToast('Исполнитель выбран!', 'success');
+      }
+    } catch (e) {
+      console.error("Failed to accept", e);
+    }
   };
 
   const login = async (email: string, password: string) => {
@@ -359,32 +472,62 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setCurrentUser({ ...currentUser, favorites: newFavorites });
   };
 
-  const sendMessage = (conversationId: string, text: string, media?: { url: string, type: 'image' }) => {
-    // Mock chat logic same as before (Chat is usually complex to implement fully with backend in one step)
+  const sendMessage = async (conversationId: string, text: string, media?: { url: string, type: 'image' }) => {
     if (!currentUser) return;
 
+    // Find conversation to get user ID?
     const conversation = conversations.find(c => c.id === conversationId);
-    const participantId = conversation?.participantId;
+    if (!conversation) return;
 
-    const newMessage: Message = {
-      id: Date.now().toString(),
-      senderId: currentUser.id,
-      text,
-      timestamp: Date.now(),
-      isRead: false,
-      mediaUrl: media?.url,
-      mediaType: media?.type
-    };
+    try {
+      // Send to API
+      // MessageViewSet expects 'receiver' and 'text'. 
+      // We need to know who is the receiver.
+      // If I am sender, receiver is participantId.
+      const receiverId = conversation.participantId;
 
-    setConversations(prev => prev.map(c => {
-      if (c.id === conversationId) {
-        return {
-          ...c,
-          messages: [...c.messages, newMessage]
+      // If media, we need FormData, else JSON
+      // Simplification for MVP: JSON text only, or separate media upload endpoint.
+      // Let's use JSON for text.
+
+      const res = await fetch(`${API_BASE_URL}/messages/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
+        },
+        body: JSON.stringify({
+          receiver: receiverId,
+          text,
+          // task: ... // Optional if we want to link
+        })
+      });
+
+      if (res.ok) {
+        const m = await res.json();
+        const newMessage: Message = {
+          id: m.id.toString(),
+          senderId: currentUser.id,
+          text: m.text,
+          timestamp: new Date(m.created_at).getTime(),
+          isRead: false,
+          mediaUrl: m.image, // If backend returns image url
+          mediaType: m.image ? 'image' : undefined
         };
+
+        setConversations(prev => prev.map(c => {
+          if (c.id === conversationId) {
+            return {
+              ...c,
+              messages: [...c.messages, newMessage]
+            };
+          }
+          return c;
+        }));
       }
-      return c;
-    }));
+    } catch (e) {
+      console.error("Failed to send message", e);
+    }
   };
 
   const markAsRead = (conversationId: string) => {
@@ -401,7 +544,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const specialist = specialists.find(s => s.id === specialistId);
     const newConversation: Conversation = {
-      id: `c_${Date.now()}`,
+      id: `conv_${specialistId}`,
       participantId: specialistId,
       participantName: specialist ? specialist.name : 'Специалист',
       participantAvatar: specialist ? specialist.avatarUrl : '',
@@ -411,7 +554,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   return (
-    <AppContext.Provider value={{ role, switchRole, tasks, taskResponses, addTask, addResponse, deleteTask, currentUser, login, register, registerSpecialist, logout, updateUser, toggleFavorite, conversations, sendMessage, startChat, markAsRead, specialists }}>
+    <AppContext.Provider value={{ role, switchRole, tasks, taskResponses, addTask, addResponse, acceptResponse, deleteTask, currentUser, login, register, registerSpecialist, logout, updateUser, toggleFavorite, conversations, sendMessage, startChat, markAsRead, specialists }}>
       {children}
     </AppContext.Provider>
   );

@@ -1,11 +1,13 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import SpecialistViewSet, TaskViewSet, AIAnalyzeView, GenerateDescriptionView
+from .views import SpecialistViewSet, TaskViewSet, TaskResponseViewSet, MessageViewSet, AIAnalyzeView, GenerateDescriptionView
 from .auth_views import RegisterView, MeView
 
 router = DefaultRouter()
 router.register(r'specialists', SpecialistViewSet)
 router.register(r'tasks', TaskViewSet)
+router.register(r'responses', TaskResponseViewSet, basename='task-response')
+router.register(r'messages', MessageViewSet, basename='message')
 
 urlpatterns = [
     path('', include(router.urls)),

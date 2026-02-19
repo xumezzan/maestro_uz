@@ -7,12 +7,12 @@ import { MOCK_SPECIALISTS } from '../constants';
 import { SpecialistCard } from '../components/SpecialistCard';
 import {
     User, Mail, Phone, MapPin, Star,
-    Settings, Camera, Edit2, BadgeCheck, Clock, Calendar, Lock, CheckCircle, Briefcase, DollarSign, Tag, Instagram, Send, ChevronRight, FileText, History, Filter, XCircle, Heart, Trash2, MessageCircle
+    Settings, Camera, Edit2, BadgeCheck, Clock, Calendar, Lock, CheckCircle, Briefcase, Banknote, Tag, Instagram, Send, ChevronRight, FileText, History, Filter, XCircle, Heart, Trash2, MessageCircle
 } from 'lucide-react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 
 export const ProfilePage: React.FC = () => {
-    const { currentUser, tasks, updateUser, deleteTask, taskResponses, startChat } = useAppContext();
+    const { currentUser, tasks, updateUser, deleteTask, taskResponses, startChat, acceptResponse } = useAppContext();
     const { t } = useLanguage();
     const { addToast } = useToast();
     const navigate = useNavigate();
@@ -283,8 +283,8 @@ export const ProfilePage: React.FC = () => {
                             <button
                                 onClick={() => setActiveTab('overview')}
                                 className={`w-full flex items-center justify-between p-3 rounded-xl transition-all ${activeTab === 'overview'
-                                        ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 font-medium shadow-sm'
-                                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-700'
+                                    ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 font-medium shadow-sm'
+                                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-700'
                                     }`}
                             >
                                 <div className="flex items-center gap-3">
@@ -299,8 +299,8 @@ export const ProfilePage: React.FC = () => {
                                     <button
                                         onClick={() => setActiveTab('history')}
                                         className={`w-full flex items-center justify-between p-3 rounded-xl transition-all mt-1 ${activeTab === 'history'
-                                                ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 font-medium shadow-sm'
-                                                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-700'
+                                            ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 font-medium shadow-sm'
+                                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-700'
                                             }`}
                                     >
                                         <div className="flex items-center gap-3">
@@ -313,8 +313,8 @@ export const ProfilePage: React.FC = () => {
                                     <button
                                         onClick={() => setActiveTab('favorites')}
                                         className={`w-full flex items-center justify-between p-3 rounded-xl transition-all mt-1 ${activeTab === 'favorites'
-                                                ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 font-medium shadow-sm'
-                                                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-700'
+                                            ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 font-medium shadow-sm'
+                                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-700'
                                             }`}
                                     >
                                         <div className="flex items-center gap-3">
@@ -329,8 +329,8 @@ export const ProfilePage: React.FC = () => {
                             <button
                                 onClick={() => setActiveTab('settings')}
                                 className={`w-full flex items-center justify-between p-3 rounded-xl transition-all mt-1 ${activeTab === 'settings'
-                                        ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 font-medium shadow-sm'
-                                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-700'
+                                    ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 font-medium shadow-sm'
+                                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-700'
                                     }`}
                             >
                                 <div className="flex items-center gap-3">
@@ -429,8 +429,8 @@ export const ProfilePage: React.FC = () => {
                                                     <div className="p-6">
                                                         <div className="flex justify-between items-start mb-3">
                                                             <span className={`px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wide ${task.status === TaskStatus.OPEN
-                                                                    ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400'
-                                                                    : 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
+                                                                ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400'
+                                                                : 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
                                                                 }`}>
                                                                 {t(task.status)}
                                                             </span>
@@ -487,6 +487,15 @@ export const ProfilePage: React.FC = () => {
                                                                                     <MessageCircle className="w-3 h-3" />
                                                                                     {t('write')}
                                                                                 </button>
+                                                                                {task.status === TaskStatus.OPEN && (
+                                                                                    <button
+                                                                                        onClick={() => acceptResponse(response.id)}
+                                                                                        className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-md transition-colors flex items-center gap-1 w-fit shadow-md shadow-emerald-600/20"
+                                                                                    >
+                                                                                        <CheckCircle className="w-3 h-3" />
+                                                                                        {t('accept')}
+                                                                                    </button>
+                                                                                )}
                                                                             </div>
                                                                         </div>
                                                                     ))}
@@ -530,8 +539,8 @@ export const ProfilePage: React.FC = () => {
                                     <button
                                         onClick={() => setHistoryFilter('ALL')}
                                         className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${historyFilter === 'ALL'
-                                                ? 'bg-gray-800 text-white dark:bg-white dark:text-slate-900'
-                                                : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700'
+                                            ? 'bg-gray-800 text-white dark:bg-white dark:text-slate-900'
+                                            : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700'
                                             }`}
                                     >
                                         {t('all')}
@@ -539,8 +548,8 @@ export const ProfilePage: React.FC = () => {
                                     <button
                                         onClick={() => setHistoryFilter(TaskStatus.COMPLETED)}
                                         className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${historyFilter === TaskStatus.COMPLETED
-                                                ? 'bg-emerald-600 text-white'
-                                                : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700'
+                                            ? 'bg-emerald-600 text-white'
+                                            : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700'
                                             }`}
                                     >
                                         {t('completed')}
@@ -548,8 +557,8 @@ export const ProfilePage: React.FC = () => {
                                     <button
                                         onClick={() => setHistoryFilter(TaskStatus.CANCELED)}
                                         className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${historyFilter === TaskStatus.CANCELED
-                                                ? 'bg-red-600 text-white'
-                                                : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700'
+                                            ? 'bg-red-600 text-white'
+                                            : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700'
                                             }`}
                                     >
                                         {t('canceled')}
@@ -561,8 +570,8 @@ export const ProfilePage: React.FC = () => {
                                         <div>
                                             <div className="flex items-center gap-3 mb-2">
                                                 <span className={`px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wide flex items-center gap-1.5 ${task.status === TaskStatus.COMPLETED
-                                                        ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400'
-                                                        : 'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400'
+                                                    ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400'
+                                                    : 'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400'
                                                     }`}>
                                                     {task.status === TaskStatus.COMPLETED ? (
                                                         <><CheckCircle className="w-3 h-3" /> {t('completedStatus')}</>
@@ -693,7 +702,7 @@ export const ProfilePage: React.FC = () => {
                                                         <label className="text-sm font-bold text-gray-700 dark:text-gray-300 ml-1">{t('minCost')}</label>
                                                         <div className="relative group">
                                                             <div className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center bg-gray-100 dark:bg-slate-700 rounded-lg text-gray-500 group-focus-within:bg-primary-100 group-focus-within:text-primary-600 dark:group-focus-within:bg-primary-900/30 dark:group-focus-within:text-primary-400 transition-colors">
-                                                                <DollarSign className="w-4 h-4" />
+                                                                <Banknote className="w-4 h-4" />
                                                             </div>
                                                             <input
                                                                 type="number"
@@ -807,28 +816,30 @@ export const ProfilePage: React.FC = () => {
             </div>
 
             {/* Confirmation Modal */}
-            {taskToDelete && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden p-6">
-                        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Удалить заказ?</h3>
-                        <p className="text-gray-500 dark:text-gray-400 mb-6">Вы уверены, что хотите удалить этот заказ? Это действие нельзя отменить.</p>
-                        <div className="flex gap-3 justify-end">
-                            <button
-                                onClick={() => setTaskToDelete(null)}
-                                className="px-4 py-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 font-medium transition-colors"
-                            >
-                                {t('cancel')}
-                            </button>
-                            <button
-                                onClick={confirmDeleteTask}
-                                className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 font-medium transition-colors"
-                            >
-                                Удалить
-                            </button>
+            {
+                taskToDelete && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                        <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden p-6">
+                            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Удалить заказ?</h3>
+                            <p className="text-gray-500 dark:text-gray-400 mb-6">Вы уверены, что хотите удалить этот заказ? Это действие нельзя отменить.</p>
+                            <div className="flex gap-3 justify-end">
+                                <button
+                                    onClick={() => setTaskToDelete(null)}
+                                    className="px-4 py-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 font-medium transition-colors"
+                                >
+                                    {t('cancel')}
+                                </button>
+                                <button
+                                    onClick={confirmDeleteTask}
+                                    className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 font-medium transition-colors"
+                                >
+                                    Удалить
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     );
 };

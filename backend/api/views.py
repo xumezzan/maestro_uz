@@ -2,11 +2,13 @@ import os
 import json
 import google.generativeai as genai
 from rest_framework import viewsets, status, permissions
+from rest_framework.decorators import action
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.conf import settings
-from .models import SpecialistProfile, Task, TaskResponse, User
-from .serializers import SpecialistProfileSerializer, TaskSerializer, TaskResponseSerializer
+from django.db.models import Q
+from .models import SpecialistProfile, Task, TaskResponse, User, Message
+from .serializers import SpecialistProfileSerializer, TaskSerializer, TaskResponseSerializer, MessageSerializer
 
 # Configure Gemini
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") 
@@ -35,6 +37,56 @@ class TaskViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(client=self.request.user)
+
+
+class TaskResponseViewSet(viewsets.ModelViewSet):
+    serializer_class = TaskResponseSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.role == 'client':
+            # Clients see responses to THEIR tasks
+            return TaskResponse.objects.filter(task__client=user)
+        elif hasattr(user, 'specialist_profile'):
+            # Specialists see responses THEY made
+            return TaskResponse.objects.filter(specialist=user.specialist_profile)
+        return TaskResponse.objects.none()
+
+    def perform_create(self, serializer):
+        # Create response as the current specialist
+        if not hasattr(self.request.user, 'specialist_profile'):
+             raise serializers.ValidationError("Only specialists can respond to tasks.")
+        
+        serializer.save(specialist=self.request.user.specialist_profile)
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def accept(self, request, pk=None):
+        response = self.get_object()
+        task = response.task
+        
+        # Check permissions: Only the client who created the task can accept
+        if task.client != request.user:
+            return Response({"error": "You are not the owner of this task"}, status=403)
+            
+        task.assigned_specialist = response.specialist
+        task.status = Task.Status.IN_PROGRESS # Set to in progress
+        task.save()
+        
+        return Response({"status": "accepted", "task_id": task.id})
+
+
+class MessageViewSet(viewsets.ModelViewSet):
+    serializer_class = MessageSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        # User sees messages sent BY them or TO them
+        user = self.request.user
+        return Message.objects.filter(Q(sender=user) | Q(receiver=user)).order_by('created_at')
+
+    def perform_create(self, serializer):
+        serializer.save(sender=self.request.user)
 
 
 class AIAnalyzeView(APIView):

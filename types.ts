@@ -61,8 +61,8 @@ export interface TaskResponse {
   specialistAvatar: string;
   specialistRating: number;
   message: string;
-  price: number; // Proposed price
-  createdAt: number;
+  price: number;
+  createdAt: string | number;
 }
 
 export interface Task {
@@ -76,6 +76,7 @@ export interface Task {
   status: TaskStatus;
   createdAt: number;
   responsesCount: number; // Количество откликов
+  assignedSpecialist?: string; // ID of the accepted specialist
 }
 
 export interface AIAnalysisResult {

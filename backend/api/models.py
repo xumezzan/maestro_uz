@@ -53,6 +53,7 @@ class Task(models.Model):
         CANCELED = 'CANCELED', 'Отменен'
 
     client = models.ForeignKey(User, on_delete=models.CASCADE, related_name='tasks')
+    assigned_specialist = models.ForeignKey(SpecialistProfile, on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_tasks')
     title = models.CharField(max_length=255)
     description = models.TextField()
     category = models.CharField(max_length=50, choices=ServiceCategory.choices)
@@ -71,3 +72,15 @@ class TaskResponse(models.Model):
     message = models.TextField()
     price = models.DecimalField(max_digits=12, decimal_places=0)
     created_at = models.DateTimeField(auto_now_add=True)
+
+class Message(models.Model):
+    sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_messages')
+    receiver = models.ForeignKey(User, on_delete=models.CASCADE, related_name='received_messages')
+    task = models.ForeignKey(Task, on_delete=models.SET_NULL, null=True, blank=True, related_name='messages')
+    text = models.TextField(blank=True)
+    image = models.ImageField(upload_to='message_images/', blank=True, null=True)
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"From {self.sender} to {self.receiver}: {self.text[:20]}"
