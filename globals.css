@@ -1,0 +1,57 @@
+/* @tailwind base; */
+/* @tailwind components; */
+/* @tailwind utilities; */
+
+/* Styles are loaded via CDN in index.html */
+
+:root {
+  --sat: env(safe-area-inset-top);
+  --sab: env(safe-area-inset-bottom);
+  --sal: env(safe-area-inset-left);
+  --sar: env(safe-area-inset-right);
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  
+  /* Prevent blue highlight on tap on iOS */
+  -webkit-tap-highlight-color: transparent;
+  
+  /* Disable text selection for app-like feel (enable on inputs only) */
+  -webkit-user-select: none;
+  user-select: none;
+  
+  /* Prevent callout menu on long press */
+  -webkit-touch-callout: none;
+  
+  /* Smooth scrolling */
+  -webkit-overflow-scrolling: touch;
+  
+  padding-left: var(--sal);
+  padding-right: var(--sar);
+}
+
+/* Allow text selection in inputs and textareas */
+input, textarea, [contenteditable="true"] {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* Custom Scrollbar for nicer UI */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+  border-radius: 20px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background-color: #475569;
+}
