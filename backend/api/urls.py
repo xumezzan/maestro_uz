@@ -1,7 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import SpecialistViewSet, TaskViewSet, TaskResponseViewSet, MessageViewSet, AIAnalyzeView, GenerateDescriptionView
-from .auth_views import RegisterView, MeView
+from .auth_views import RegisterView, MeView, VerifyEmailView
 
 router = DefaultRouter()
 router.register(r'specialists', SpecialistViewSet)
@@ -14,5 +14,6 @@ urlpatterns = [
     path('ai/analyze/', AIAnalyzeView.as_view(), name='ai-analyze'),
     path('ai/generate-description/', GenerateDescriptionView.as_view(), name='ai-generate-description'),
     path('auth/register/', RegisterView.as_view(), name='auth-register'),
+    path('auth/verify-email/', VerifyEmailView.as_view(), name='auth-verify-email'),
     path('auth/me/', MeView.as_view(), name='auth-me'),
 ]

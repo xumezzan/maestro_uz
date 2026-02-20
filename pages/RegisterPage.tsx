@@ -1,18 +1,18 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
-import { User, ArrowRight, Eye, EyeOff } from 'lucide-react';
-import { PasswordStrengthMeter } from '../components/PasswordStrengthMeter';
+import { User, ArrowRight, ArrowLeft } from 'lucide-react';
+import { useToast } from '../context/ToastContext';
 
 export const RegisterPage: React.FC = () => {
     const navigate = useNavigate();
-    const { register } = useAppContext();
-    const [showPassword, setShowPassword] = useState(false);
+    const { registerRequest, verifyEmail } = useAppContext();
+    const { addToast } = useToast();
+    const [step, setStep] = useState(1);
+    const [otpCode, setOtpCode] = useState('');
     const [formData, setFormData] = useState({
         username: '',
         email: '',
-        password: '',
-        confirmPassword: '',
         firstName: '',
         lastName: ''
     });
@@ -21,25 +21,30 @@ export const RegisterPage: React.FC = () => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleRegisterSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (formData.password !== formData.confirmPassword) {
-            alert("Пароли не совпадают!");
-            return;
-        }
-
         try {
-            await register({
+            await registerRequest({
                 username: formData.username,
                 email: formData.email,
-                password: formData.password,
                 first_name: formData.firstName,
                 last_name: formData.lastName,
                 role: 'CLIENT'
             });
+            addToast("Код подтверждения отправлен на почту", 'success');
+            setStep(2);
+        } catch (error) {
+            addToast("Ошибка регистрации. Заполните корректно данные.", 'error');
+        }
+    };
+
+    const handleVerifySubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            await verifyEmail(formData.email, otpCode);
             navigate('/');
         } catch (error) {
-            alert("Ошибка регистрации. Возможно, пользователь с таким именем уже существует.");
+            addToast("Неверный код подтверждения.", 'error');
         }
     };
 
@@ -60,112 +65,127 @@ export const RegisterPage: React.FC = () => {
                 </div>
 
                 <div className="fiverr-card p-8">
-                    <div className="text-center mb-8">
-                        <h1 className="text-2xl font-bold text-heading mb-2">Создать аккаунт</h1>
-                        <p className="text-fiverr-text-muted">Зарегистрируйтесь как заказчик</p>
-                    </div>
+                    {step === 1 ? (
+                        <>
+                            <div className="text-center mb-8">
+                                <h1 className="text-2xl font-bold text-heading mb-2">Создать аккаунт</h1>
+                                <p className="text-fiverr-text-muted">Зарегистрируйтесь как заказчик</p>
+                            </div>
 
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                        <div>
-                            <label className="block text-sm font-medium text-fiverr-text-muted mb-1.5">Имя пользователя</label>
-                            <input
-                                type="text"
-                                name="username"
-                                required
-                                value={formData.username}
-                                onChange={handleChange}
-                                className="fiverr-input"
-                                placeholder="user123"
-                            />
-                        </div>
-                        <div className="grid grid-cols-2 gap-3">
-                            <div>
-                                <label className="block text-sm font-medium text-fiverr-text-muted mb-1.5">Имя</label>
-                                <input
-                                    type="text"
-                                    name="firstName"
-                                    value={formData.firstName}
-                                    onChange={handleChange}
-                                    className="fiverr-input"
-                                    placeholder="Иван"
-                                />
+                            <form onSubmit={handleRegisterSubmit} className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-fiverr-text-muted mb-1.5">Имя пользователя (Логин)</label>
+                                    <input
+                                        type="text"
+                                        name="username"
+                                        required
+                                        value={formData.username}
+                                        onChange={handleChange}
+                                        className="fiverr-input"
+                                        placeholder="user123"
+                                    />
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="block text-sm font-medium text-fiverr-text-muted mb-1.5">Имя</label>
+                                        <input
+                                            type="text"
+                                            name="firstName"
+                                            value={formData.firstName}
+                                            onChange={handleChange}
+                                            className="fiverr-input"
+                                            placeholder="Иван"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-fiverr-text-muted mb-1.5">Фамилия</label>
+                                        <input
+                                            type="text"
+                                            name="lastName"
+                                            value={formData.lastName}
+                                            onChange={handleChange}
+                                            className="fiverr-input"
+                                            placeholder="Иванов"
+                                        />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-fiverr-text-muted mb-1.5">Электронная почта</label>
+                                    <input
+                                        type="email"
+                                        name="email"
+                                        required
+                                        value={formData.email}
+                                        onChange={handleChange}
+                                        className="fiverr-input"
+                                        placeholder="client@example.com"
+                                    />
+                                    <p className="text-xs text-fiverr-text-dim mt-2">
+                                        На этот адрес мы отправим ваш пароль и код подтверждения.
+                                    </p>
+                                </div>
+
+                                <button
+                                    type="submit"
+                                    className="w-full fiverr-btn fiverr-btn-primary py-3.5 text-base mt-2"
+                                >
+                                    Получить код
+                                    <ArrowRight className="w-5 h-5" />
+                                </button>
+                            </form>
+
+                            <div className="mt-6 text-center text-sm text-fiverr-text-muted">
+                                <p>
+                                    Есть аккаунт?{' '}
+                                    <Link to="/login" className="text-fiverr-green hover:text-fiverr-green-dark font-medium transition-colors">
+                                        Войти
+                                    </Link>
+                                </p>
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium text-fiverr-text-muted mb-1.5">Фамилия</label>
-                                <input
-                                    type="text"
-                                    name="lastName"
-                                    value={formData.lastName}
-                                    onChange={handleChange}
-                                    className="fiverr-input"
-                                    placeholder="Иванов"
-                                />
+                        </>
+                    ) : (
+                        <>
+                            <div className="text-center mb-8">
+                                <h1 className="text-2xl font-bold text-heading mb-2">Подтверждение Email</h1>
+                                <p className="text-fiverr-text-muted">
+                                    Мы отправили пароль и 6-значный код на <br />
+                                    <span className="font-medium text-heading">{formData.email}</span>
+                                </p>
                             </div>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-fiverr-text-muted mb-1.5">Email</label>
-                            <input
-                                type="email"
-                                name="email"
-                                required
-                                value={formData.email}
-                                onChange={handleChange}
-                                className="fiverr-input"
-                                placeholder="client@example.com"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-fiverr-text-muted mb-1.5">Пароль</label>
-                            <div className="relative">
-                                <input
-                                    type={showPassword ? "text" : "password"}
-                                    name="password"
-                                    required
-                                    value={formData.password}
-                                    onChange={handleChange}
-                                    className="fiverr-input pr-12"
-                                    placeholder="••••••••"
-                                />
+
+                            <form onSubmit={handleVerifySubmit} className="space-y-6">
+                                <div>
+                                    <label className="block text-sm font-medium text-fiverr-text-muted mb-1.5 text-center">Код подтверждения</label>
+                                    <input
+                                        type="text"
+                                        required
+                                        maxLength={6}
+                                        autoComplete="off"
+                                        value={otpCode}
+                                        onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                                        className="fiverr-input text-center text-2xl tracking-[0.5em] font-medium py-4"
+                                        placeholder="••••••"
+                                    />
+                                </div>
+
+                                <button
+                                    type="submit"
+                                    className="w-full fiverr-btn fiverr-btn-primary py-3.5 text-base"
+                                    disabled={otpCode.length < 6}
+                                >
+                                    Подтвердить и войти
+                                </button>
+
                                 <button
                                     type="button"
-                                    onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-fiverr-text-dim hover:text-heading transition-colors"
+                                    onClick={() => setStep(1)}
+                                    className="w-full text-center text-sm text-fiverr-text-dim hover:text-heading transition-colors"
                                 >
-                                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                                    Вернуться назад
                                 </button>
-                            </div>
-                            <PasswordStrengthMeter password={formData.password} />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-fiverr-text-muted mb-1.5">Подтвердите пароль</label>
-                            <input
-                                type="password"
-                                name="confirmPassword"
-                                required
-                                value={formData.confirmPassword}
-                                onChange={handleChange}
-                                className="fiverr-input"
-                                placeholder="••••••••"
-                            />
-                        </div>
-
-                        <button
-                            type="submit"
-                            className="w-full fiverr-btn fiverr-btn-primary py-3.5 text-base mt-2"
-                        >
-                            Зарегистрироваться
-                            <ArrowRight className="w-5 h-5" />
-                        </button>
-                    </form>
-
-                    <div className="mt-6 text-center text-sm text-fiverr-text-muted">
-                        <p>
-                            Есть аккаунт?{' '}
-                            <Link to="/login" className="text-fiverr-green hover:text-fiverr-green-dark font-medium transition-colors">
-                                Войти
-                            </Link>
-                        </p>
-                    </div>
+                            </form>
+                        </>
+                    )}
                 </div>
             </div>
         </div>

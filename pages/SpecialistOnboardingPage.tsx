@@ -11,6 +11,7 @@ export const SpecialistOnboardingPage: React.FC = () => {
     const { registerSpecialist } = useAppContext();
     const { addToast } = useToast();
     const [step, setStep] = useState(1);
+    const [otpCode, setOtpCode] = useState('');
 
     const profileInputRef = useRef<HTMLInputElement>(null);
     const passportInputRef = useRef<HTMLInputElement>(null);
@@ -35,23 +36,49 @@ export const SpecialistOnboardingPage: React.FC = () => {
         setStep(prev => prev + 1);
     };
 
-    const handleFinish = (e: React.FormEvent) => {
+    const handlePreFinish = async (e: React.FormEvent) => {
         e.preventDefault();
-        registerSpecialist({
-            name: `${formData.name} ${formData.surname}`,
-            email: formData.email,
-            phone: formData.phone,
-            category: formData.category,
-            description: formData.description,
-            priceStart: parseInt(formData.priceStart) || 0,
-            location: formData.location,
-            tags: [formData.category],
-            verified: true,
-            passportFile: passportFile || undefined,
-            profileFile: profileFile || undefined
-        });
-        addToast('Вы успешно зарегистрировались!', 'success');
-        navigate('/specialist-dashboard');
+        try {
+            // First we request the base user registration to send OTP
+            await useAppContext().registerRequest({
+                username: formData.email.split('@')[0] + Date.now().toString().slice(-4), // generate unique username
+                email: formData.email,
+                first_name: formData.name,
+                last_name: formData.surname,
+                role: 'SPECIALIST'
+            });
+            addToast('Код подтверждения отправлен на почту!', 'success');
+            setStep(4); // Move to OTP step
+        } catch (error) {
+            addToast('Ошибка при отправке кода.', 'error');
+        }
+    };
+
+    const handleVerifyAndFinish = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            const { verifyEmail, registerSpecialist } = useAppContext();
+            // Verify and log in
+            await verifyEmail(formData.email, otpCode);
+            // Now that user is authenticated with tokens, create specialist profile
+            await registerSpecialist({
+                name: `${formData.name} ${formData.surname}`,
+                email: formData.email,
+                phone: formData.phone,
+                category: formData.category,
+                description: formData.description,
+                priceStart: parseInt(formData.priceStart) || 0,
+                location: formData.location,
+                tags: [formData.category],
+                verified: true,
+                passportFile: passportFile || undefined,
+                profileFile: profileFile || undefined
+            });
+            addToast('Профиль специалиста успешно создан!', 'success');
+            navigate('/specialist-dashboard');
+        } catch (error) {
+            addToast('Ошибка подтверждения или создания профиля.', 'error');
+        }
     };
 
     const handleFileChange = (type: 'profile' | 'passport') => (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -78,7 +105,8 @@ export const SpecialistOnboardingPage: React.FC = () => {
                     {[
                         { n: 1, label: 'Аккаунт', icon: User },
                         { n: 2, label: 'Услуги', icon: Briefcase },
-                        { n: 3, label: 'Проверка', icon: FileCheck }
+                        { n: 3, label: 'Проверка', icon: FileCheck },
+                        { n: 4, label: 'Email', icon: CheckCircle }
                     ].map((s) => (
                         <div key={s.n} className="relative z-10 flex flex-col items-center gap-2 px-3 page-bg">
                             <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all ${step >= s.n
@@ -120,12 +148,6 @@ export const SpecialistOnboardingPage: React.FC = () => {
                             <div>
                                 <label className="block text-sm font-medium text-fiverr-text-muted mb-1.5">Email</label>
                                 <input type="email" required value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} className="fiverr-input" />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-fiverr-text-muted mb-1.5">Придумайте пароль</label>
-                                <input type="password" required value={formData.password} onChange={e => setFormData({ ...formData, password: e.target.value })} className="fiverr-input" />
-                                <PasswordStrengthMeter password={formData.password} />
                             </div>
 
                             <button type="submit" className="w-full mt-4 fiverr-btn fiverr-btn-primary py-3">
@@ -189,7 +211,7 @@ export const SpecialistOnboardingPage: React.FC = () => {
 
                     {/* Step 3 */}
                     {step === 3 && (
-                        <form onSubmit={handleFinish} className="p-8 space-y-6">
+                        <form onSubmit={handlePreFinish} className="p-8 space-y-6">
                             <h2 className="text-xl font-bold text-heading">Верификация и фото</h2>
 
                             <div className="bg-fiverr-yellow/10 border border-fiverr-yellow/20 p-4 rounded-lg flex gap-3">
@@ -248,9 +270,52 @@ export const SpecialistOnboardingPage: React.FC = () => {
                             <div className="flex gap-3 mt-4">
                                 <button type="button" onClick={() => setStep(2)} className="px-6 py-3 rounded-xl border border-fiverr-border text-fiverr-text-muted hover:border-fiverr-green hover:text-fiverr-green transition-colors">Назад</button>
                                 <button type="submit" className="flex-1 fiverr-btn fiverr-btn-primary py-3">
-                                    Завершить регистрацию
+                                    Получить код
                                 </button>
                             </div>
+                        </form>
+                    )}
+
+                    {/* Step 4: OTP */}
+                    {step === 4 && (
+                        <form onSubmit={handleVerifyAndFinish} className="p-8 space-y-6">
+                            <div className="text-center mb-8">
+                                <h1 className="text-2xl font-bold text-heading mb-2">Подтверждение Email</h1>
+                                <p className="text-fiverr-text-muted">
+                                    Мы отправили пароль и 6-значный код на <br />
+                                    <span className="font-medium text-heading">{formData.email}</span>
+                                </p>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-fiverr-text-muted mb-1.5 text-center">Код подтверждения</label>
+                                <input
+                                    type="text"
+                                    required
+                                    maxLength={6}
+                                    autoComplete="off"
+                                    value={otpCode}
+                                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                                    className="fiverr-input text-center text-2xl tracking-[0.5em] font-medium py-4"
+                                    placeholder="••••••"
+                                />
+                            </div>
+
+                            <button
+                                type="submit"
+                                className="w-full fiverr-btn fiverr-btn-primary py-3.5 text-base"
+                                disabled={otpCode.length < 6}
+                            >
+                                Подтвердить и завершить
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => setStep(3)}
+                                className="w-full text-center text-sm text-fiverr-text-dim hover:text-heading transition-colors"
+                            >
+                                Вернуться назад
+                            </button>
                         </form>
                     )}
 

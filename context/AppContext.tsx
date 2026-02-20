@@ -15,6 +15,8 @@ interface AppContextType {
   currentUser: UserProfile | null;
   login: (email: string, password: string) => Promise<void>;
   register: (data: any) => Promise<void>;
+  registerRequest: (data: any) => Promise<void>;
+  verifyEmail: (email: string, code: string) => Promise<void>;
   registerSpecialist: (data: Partial<Specialist> & { email: string, phone: string, passportFile?: File, profileFile?: File }) => Promise<void>;
   logout: () => void;
   updateUser: (user: UserProfile) => void;
@@ -364,6 +366,45 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
+  const registerRequest = async (data: any) => {
+    try {
+      await api.post('/auth/register/', data);
+    } catch (error: any) {
+      console.error("Registration request failed", error);
+      throw error;
+    }
+  };
+
+  const verifyEmail = async (email: string, code: string) => {
+    try {
+      const response = await api.post('/auth/verify-email/', { email, code });
+      const { access, refresh } = response.data;
+      localStorage.setItem('accessToken', access);
+      localStorage.setItem('refreshToken', refresh);
+
+      // Fetch user profile
+      const meRes = await api.get('/auth/me/');
+      const userData: any = meRes.data;
+
+      const userProfile: UserProfile = {
+        id: userData.id.toString(),
+        name: userData.first_name || userData.username,
+        email: userData.email,
+        role: userData.role as UserRole,
+        location: userData.location || 'Ташкент',
+        avatarUrl: userData.avatar_url || `https://ui-avatars.com/api/?name=${userData.username}`,
+        favorites: []
+      };
+
+      setCurrentUser(userProfile);
+      setRole(userData.role as UserRole);
+      addToast("Email успешно подтвержден!", 'success');
+    } catch (error: any) {
+      console.error("Verification failed", error);
+      throw error;
+    }
+  };
+
   const registerSpecialist = async (data: Partial<Specialist> & { email: string, phone: string, passportFile?: File, profileFile?: File }) => {
     const tempId = Date.now().toString();
     const coords = getRandomCoords();
@@ -554,7 +595,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   return (
-    <AppContext.Provider value={{ role, switchRole, tasks, taskResponses, addTask, addResponse, acceptResponse, deleteTask, currentUser, login, register, registerSpecialist, logout, updateUser, toggleFavorite, conversations, sendMessage, startChat, markAsRead, specialists }}>
+    <AppContext.Provider value={{ role, switchRole, tasks, taskResponses, addTask, addResponse, acceptResponse, deleteTask, currentUser, login, register, registerRequest, verifyEmail, registerSpecialist, logout, updateUser, toggleFavorite, conversations, sendMessage, startChat, markAsRead, specialists }}>
       {children}
     </AppContext.Provider>
   );

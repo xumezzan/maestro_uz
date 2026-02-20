@@ -15,6 +15,14 @@ class User(AbstractUser):
     def __str__(self):
         return self.username
 
+class EmailVerification(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='email_verification')
+    code = models.CharField(max_length=6)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user.email} - {self.code}"
+
 class ServiceCategory(models.TextChoices):
     REPAIR = 'Ремонт', 'Ремонт'
     TUTORS = 'Репетиторы', 'Репетиторы'
