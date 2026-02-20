@@ -1,11 +1,11 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Task, TaskStatus, UserRole, ServiceCategory, UserProfile, Specialist, Conversation, Message, TaskResponse } from '../types';
-import { useToast } from './ToastContext'; // Import Toast for notifications
+import { useToast } from './ToastContext';
 import api from '../services/api';
 
 interface AppContextType {
   role: UserRole;
-  switchRole: () => void; // Legacy switch for demo
+  switchRole: () => void;
   tasks: Task[];
   taskResponses: TaskResponse[];
   addTask: (task: Task) => void;
@@ -25,7 +25,11 @@ interface AppContextType {
   sendMessage: (conversationId: string, text: string, media?: { url: string, type: 'image' }) => void;
   startChat: (specialistId: string) => void;
   markAsRead: (conversationId: string) => void;
-  specialists: Specialist[]; // Exposed dynamic list
+  specialists: Specialist[];
+  forgotPassword: (email: string) => Promise<void>;
+  resetPassword: (token: string, password: string, passwordConfirm: string) => Promise<void>;
+  resendVerification: (email: string) => Promise<void>;
+  updateProfile: (data: any) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -36,15 +40,25 @@ const API_BASE_URL = '/api';
 const TASHKENT_LAT = 41.2995;
 const TASHKENT_LNG = 69.2401;
 
-// Helper to generate random coordinates near Tashkent
 const getRandomCoords = () => {
-  const lat = TASHKENT_LAT + (Math.random() - 0.5) * 0.1; // +/- ~5km
+  const lat = TASHKENT_LAT + (Math.random() - 0.5) * 0.1;
   const lng = TASHKENT_LNG + (Math.random() - 0.5) * 0.15;
   return { lat, lng };
 };
 
+// Helper to map backend user to frontend UserProfile
+const mapUserProfile = (userData: any): UserProfile => ({
+  id: userData.id.toString(),
+  name: userData.first_name || userData.username,
+  email: userData.email,
+  role: userData.role as UserRole,
+  location: userData.location || 'Ташкент',
+  avatarUrl: userData.avatar_url || `https://ui-avatars.com/api/?name=${userData.username}`,
+  favorites: [],
+});
+
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { addToast } = useToast(); // Use toast context
+  const { addToast } = useToast();
   const [role, setRole] = useState<UserRole>(UserRole.CLIENT);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [taskResponses, setTaskResponses] = useState<TaskResponse[]>([]);
@@ -52,7 +66,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [specialists, setSpecialists] = useState<Specialist[]>([]);
 
-  // Helper to map Django Task to Frontend Task
   const mapTask = (t: any): Task => ({
     id: t.id.toString(),
     title: t.title,
@@ -67,33 +80,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     assignedSpecialist: t.assigned_specialist ? t.assigned_specialist.toString() : undefined
   });
 
-  // Fetch Data on Load
+  // ── Init auth + fetch data on mount ──────────────────────────────────
   useEffect(() => {
     const initAuth = async () => {
       const token = localStorage.getItem('accessToken');
       if (token) {
         try {
           const meRes = await api.get('/auth/me/');
-          const userData: any = meRes.data;
-          // Map backend user to frontend UserProfile
-          const userProfile: UserProfile = {
-            id: userData.id.toString(),
-            name: userData.first_name || userData.username,
-            email: userData.email,
-            role: userData.role as UserRole,
-            location: userData.location || 'Ташкент', // Using location from User model now
-            avatarUrl: userData.avatar_url || `https://ui-avatars.com/api/?name=${userData.username}`,
-            favorites: [] // TODO: Load favorites
-          };
-
-          // If specialist, we might need to fetch profile separately or include it in MeView
-          if (userData.role === UserRole.SPECIALIST) {
-            // For now assume simple mapping, ideally MeView returns profile
-          }
-
+          const userProfile = mapUserProfile(meRes.data);
           setCurrentUser(userProfile);
-          setRole(userData.role as UserRole);
-
+          setRole(meRes.data.role as UserRole);
         } catch (e) {
           console.error("Auth check failed", e);
           localStorage.removeItem('accessToken');
@@ -111,7 +107,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           const specData = await specRes.json();
           if (Array.isArray(specData) && specData.length > 0) {
             setSpecialists(specData.map((s: any) => {
-              // Add coords if missing in backend
               const coords = getRandomCoords();
               return {
                 id: s.id.toString(),
@@ -172,13 +167,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           const msgData = await msgRes.json();
           if (Array.isArray(msgData)) {
             const convMap = new Map<string, Conversation>();
-
             msgData.forEach((m: any) => {
               const isMe = m.is_me;
-              // If I sent it, the other person is the receiver.
-              // If I received it, the other person is the sender.
               const participantId = isMe ? m.receiver.toString() : m.sender.toString();
-
               if (!convMap.has(participantId)) {
                 convMap.set(participantId, {
                   id: `conv_${participantId}`,
@@ -188,11 +179,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                   messages: []
                 });
               }
-
               const conv = convMap.get(participantId)!;
-              // Update participant details if missing (e.g. from previous messages where info might be incomplete if we had that, but here we process all)
-              // Actually, just pushing the message is enough.
-
               conv.messages.push({
                 id: m.id.toString(),
                 senderId: m.sender.toString(),
@@ -203,7 +190,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 mediaType: m.image ? 'image' : undefined
               });
             });
-
             setConversations(Array.from(convMap.values()));
           }
         }
@@ -218,12 +204,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setRole(prev => prev === UserRole.CLIENT ? UserRole.SPECIALIST : UserRole.CLIENT);
   };
 
-
-
   const addTask = async (task: Task) => {
-    // Optimistic UI update
     setTasks(prev => [task, ...prev]);
-
     try {
       const response = await fetch(`${API_BASE_URL}/tasks/`, {
         method: 'POST',
@@ -238,14 +220,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           status: task.status
         })
       });
-
       if (response.ok) {
         const savedTask = await response.json();
-        // Replace the optimistic task with the real one (with real ID)
         setTasks(prev => prev.map(t => t.id === task.id ? mapTask(savedTask) : t));
       }
     } catch (e) {
-      console.error("Failed to save task to backend (Demo mode active)", e);
+      console.error("Failed to save task to backend", e);
     }
   };
 
@@ -258,7 +238,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const addResponse = async (taskId: string, message: string, price: number) => {
     if (!currentUser || currentUser.role !== UserRole.SPECIALIST || !currentUser.specialistProfile) return;
-
     try {
       const res = await fetch(`${API_BASE_URL}/responses/`, {
         method: 'POST',
@@ -266,13 +245,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
         },
-        body: JSON.stringify({
-          task: taskId,
-          message,
-          price
-        })
+        body: JSON.stringify({ task: taskId, message, price })
       });
-
       if (res.ok) {
         const r = await res.json();
         const newResponse: TaskResponse = {
@@ -307,12 +281,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       });
       if (res.ok) {
         const data = await res.json();
-        // Update task status locally
         setTasks(prev => prev.map(t => t.id === data.task_id.toString() ? {
           ...t,
           status: TaskStatus.IN_PROGRESS,
-          // We don't have the specialist ID easily here without looking up response, 
-          // but we can find it in taskResponses
           assignedSpecialist: taskResponses.find(r => r.id === responseId)?.specialistId
         } : t));
         addToast('Исполнитель выбран!', 'success');
@@ -322,44 +293,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
+  // ── AUTH FUNCTIONS ───────────────────────────────────────────────────
+
   const login = async (email: string, password: string) => {
     try {
-      const response = await api.post('/token/', { username: email, password }); // Using email as username for now or we need to adjust backend
-      // Note: Backend default TokenObtainPairView expects 'username' and 'password'. 
-      // If we want to use email, we need custom view or client to send email as username if username=email.
-      // For this MVP, let's assume username=email in registration.
+      const response = await api.post('/auth/login/', { email, password });
+      const { access, refresh, user: userData } = response.data;
 
-      const { access, refresh } = response.data;
       localStorage.setItem('accessToken', access);
       localStorage.setItem('refreshToken', refresh);
 
-      // Decode token to get role or fetch me
-      const meRes = await api.get('/auth/me/');
-      const userData: any = meRes.data;
-
-      const userProfile: UserProfile = {
-        id: userData.id.toString(),
-        name: userData.first_name || userData.username,
-        email: userData.email,
-        role: userData.role as UserRole,
-        location: userData.location || 'Ташкент',
-        avatarUrl: userData.avatar_url || `https://ui-avatars.com/api/?name=${userData.username}`,
-        favorites: []
-      };
-
+      const userProfile = mapUserProfile(userData);
       setCurrentUser(userProfile);
       setRole(userData.role as UserRole);
       addToast("Вы успешно вошли!", 'success');
-    } catch (error) {
-      console.error("Login failed", error);
-      throw new Error("Неверный логин или пароль");
+    } catch (error: any) {
+      const msg = error.response?.data?.error || "Неверный логин или пароль";
+      throw new Error(msg);
     }
   };
 
   const register = async (data: any) => {
     try {
       await api.post('/auth/register/', data);
-      await login(data.username, data.password);
+      await login(data.email, data.password);
     } catch (error) {
       console.error("Registration failed", error);
       throw error;
@@ -378,38 +335,88 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const verifyEmail = async (email: string, code: string) => {
     try {
       const response = await api.post('/auth/verify-email/', { email, code });
-      const { access, refresh } = response.data;
+      const { access, refresh, user: userData } = response.data;
+
       localStorage.setItem('accessToken', access);
       localStorage.setItem('refreshToken', refresh);
 
-      // Fetch user profile
-      const meRes = await api.get('/auth/me/');
-      const userData: any = meRes.data;
-
-      const userProfile: UserProfile = {
-        id: userData.id.toString(),
-        name: userData.first_name || userData.username,
-        email: userData.email,
-        role: userData.role as UserRole,
-        location: userData.location || 'Ташкент',
-        avatarUrl: userData.avatar_url || `https://ui-avatars.com/api/?name=${userData.username}`,
-        favorites: []
-      };
-
+      const userProfile = mapUserProfile(userData);
       setCurrentUser(userProfile);
       setRole(userData.role as UserRole);
-      addToast("Email успешно подтвержден!", 'success');
+      addToast("Email успешно подтверждён!", 'success');
     } catch (error: any) {
       console.error("Verification failed", error);
       throw error;
     }
   };
 
+  const resendVerification = async (email: string) => {
+    try {
+      await api.post('/auth/resend-verification/', { email });
+      addToast("Код повторно отправлен на почту", 'success');
+    } catch (error) {
+      console.error("Resend verification failed", error);
+      throw error;
+    }
+  };
+
+  const forgotPassword = async (email: string) => {
+    try {
+      await api.post('/auth/forgot-password/', { email });
+      // Always success (anti-enumeration)
+    } catch (error) {
+      console.error("Forgot password failed", error);
+      throw error;
+    }
+  };
+
+  const resetPassword = async (token: string, password: string, passwordConfirm: string) => {
+    try {
+      await api.post('/auth/reset-password/', {
+        token,
+        password,
+        password_confirm: passwordConfirm,
+      });
+      addToast("Пароль успешно изменён!", 'success');
+    } catch (error: any) {
+      console.error("Reset password failed", error);
+      throw error;
+    }
+  };
+
+  const updateProfile = async (data: any) => {
+    try {
+      const response = await api.put('/auth/me/', data);
+      const userProfile = mapUserProfile(response.data);
+      setCurrentUser(userProfile);
+      addToast("Профиль обновлён", 'success');
+    } catch (error) {
+      console.error("Update profile failed", error);
+      throw error;
+    }
+  };
+
+  const logout = async () => {
+    const refreshToken = localStorage.getItem('refreshToken');
+    if (refreshToken) {
+      try {
+        await api.post('/auth/logout/', { refresh: refreshToken });
+      } catch (e) {
+        console.error("Logout API call failed", e);
+      }
+    }
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+    setCurrentUser(null);
+    setRole(UserRole.CLIENT);
+    setConversations([]);
+    addToast("Вы вышли из аккаунта", 'info');
+  };
+
   const registerSpecialist = async (data: Partial<Specialist> & { email: string, phone: string, passportFile?: File, profileFile?: File }) => {
     const tempId = Date.now().toString();
     const coords = getRandomCoords();
 
-    // Frontend optimistic update
     const newSpecialist: Specialist = {
       id: tempId,
       name: data.name || 'Новый Специалист',
@@ -442,7 +449,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setCurrentUser(newUser);
     setRole(UserRole.SPECIALIST);
 
-    // Backend Save
     try {
       const formData = new FormData();
       formData.append('category', data.category || '');
@@ -450,14 +456,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       formData.append('description', data.description || '');
       formData.append('location', data.location || '');
       if (data.tags) {
-        // Send tags as individual items or JSON string depending on backend expectation
-        // Django list field usually expects JSON if using simple implementation, or separate values if ManyToMany
-        // Given models.py has JSONField, we should send it as a JSON string
         formData.append('tags', JSON.stringify(data.tags));
       }
       formData.append('email', data.email);
       formData.append('phone', data.phone);
-      formData.append('is_verified', 'true'); // Demo auto-verify
+      formData.append('is_verified', 'true');
 
       if (data.passportFile) {
         formData.append('passport_image', data.passportFile);
@@ -468,15 +471,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       const response = await fetch(`${API_BASE_URL}/specialists/`, {
         method: 'POST',
-        // Start header removal
-        // headers: { 'Content-Type': 'multipart/form-data' }, // Do NOT set Content-Type manually with FormData, browser does it with boundary
-        // End header removal
         body: formData
       });
 
       if (response.ok) {
         const savedSpec = await response.json();
-        // Update the optimistic ID with real DB ID
         const realSpec = { ...newSpecialist, id: savedSpec.id.toString() };
         setSpecialists(prev => prev.map(s => s.id === tempId ? realSpec : s));
         setCurrentUser({ ...newUser, id: savedSpec.id.toString(), specialistProfile: realSpec });
@@ -484,12 +483,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch (e) {
       console.error("Failed to register specialist", e);
     }
-  };
-
-  const logout = () => {
-    setCurrentUser(null);
-    setRole(UserRole.CLIENT);
-    setConversations([]);
   };
 
   const updateUser = (user: UserProfile) => {
@@ -515,33 +508,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const sendMessage = async (conversationId: string, text: string, media?: { url: string, type: 'image' }) => {
     if (!currentUser) return;
-
-    // Find conversation to get user ID?
     const conversation = conversations.find(c => c.id === conversationId);
     if (!conversation) return;
 
     try {
-      // Send to API
-      // MessageViewSet expects 'receiver' and 'text'. 
-      // We need to know who is the receiver.
-      // If I am sender, receiver is participantId.
       const receiverId = conversation.participantId;
-
-      // If media, we need FormData, else JSON
-      // Simplification for MVP: JSON text only, or separate media upload endpoint.
-      // Let's use JSON for text.
-
       const res = await fetch(`${API_BASE_URL}/messages/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
         },
-        body: JSON.stringify({
-          receiver: receiverId,
-          text,
-          // task: ... // Optional if we want to link
-        })
+        body: JSON.stringify({ receiver: receiverId, text })
       });
 
       if (res.ok) {
@@ -552,16 +530,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           text: m.text,
           timestamp: new Date(m.created_at).getTime(),
           isRead: false,
-          mediaUrl: m.image, // If backend returns image url
+          mediaUrl: m.image,
           mediaType: m.image ? 'image' : undefined
         };
 
         setConversations(prev => prev.map(c => {
           if (c.id === conversationId) {
-            return {
-              ...c,
-              messages: [...c.messages, newMessage]
-            };
+            return { ...c, messages: [...c.messages, newMessage] };
           }
           return c;
         }));
@@ -572,7 +547,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const markAsRead = (conversationId: string) => {
-    // Mock local logic
     setConversations(prev => prev.map(c =>
       c.id === conversationId ? { ...c, messages: c.messages.map(m => ({ ...m, isRead: true })) } : c
     ));
@@ -595,7 +569,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   return (
-    <AppContext.Provider value={{ role, switchRole, tasks, taskResponses, addTask, addResponse, acceptResponse, deleteTask, currentUser, login, register, registerRequest, verifyEmail, registerSpecialist, logout, updateUser, toggleFavorite, conversations, sendMessage, startChat, markAsRead, specialists }}>
+    <AppContext.Provider value={{
+      role, switchRole, tasks, taskResponses, addTask, addResponse, acceptResponse,
+      deleteTask, currentUser, login, register, registerRequest, verifyEmail,
+      registerSpecialist, logout, updateUser, toggleFavorite, conversations,
+      sendMessage, startChat, markAsRead, specialists,
+      forgotPassword, resetPassword, resendVerification, updateProfile,
+    }}>
       {children}
     </AppContext.Provider>
   );

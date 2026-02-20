@@ -24,6 +24,7 @@ export const SpecialistOnboardingPage: React.FC = () => {
         email: '',
         phone: '+998 ',
         password: '',
+        passwordConfirm: '',
         category: ServiceCategory.REPAIR,
         description: '',
         priceStart: '',
@@ -39,12 +40,23 @@ export const SpecialistOnboardingPage: React.FC = () => {
     const handlePreFinish = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
+            if (formData.password !== formData.passwordConfirm) {
+                addToast("Пароли не совпадают", 'error');
+                return;
+            }
+            if (formData.password.length < 8) {
+                addToast("Пароль должен содержать минимум 8 символов", 'error');
+                return;
+            }
+
             // First we request the base user registration to send OTP
             await useAppContext().registerRequest({
                 username: formData.email.split('@')[0] + Date.now().toString().slice(-4), // generate unique username
                 email: formData.email,
                 first_name: formData.name,
                 last_name: formData.surname,
+                password: formData.password,
+                password_confirm: formData.passwordConfirm,
                 role: 'SPECIALIST'
             });
             addToast('Код подтверждения отправлен на почту!', 'success');
@@ -148,6 +160,17 @@ export const SpecialistOnboardingPage: React.FC = () => {
                             <div>
                                 <label className="block text-sm font-medium text-fiverr-text-muted mb-1.5">Email</label>
                                 <input type="email" required value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} className="fiverr-input" />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-fiverr-text-muted mb-1.5">Пароль</label>
+                                    <input type="password" required minLength={8} value={formData.password} onChange={e => setFormData({ ...formData, password: e.target.value })} className="fiverr-input" placeholder="Минимум 8 символов" />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-fiverr-text-muted mb-1.5">Подтвердите пароль</label>
+                                    <input type="password" required minLength={8} value={formData.passwordConfirm} onChange={e => setFormData({ ...formData, passwordConfirm: e.target.value })} className="fiverr-input" placeholder="Повторите пароль" />
+                                </div>
                             </div>
 
                             <button type="submit" className="w-full mt-4 fiverr-btn fiverr-btn-primary py-3">
@@ -282,7 +305,7 @@ export const SpecialistOnboardingPage: React.FC = () => {
                             <div className="text-center mb-8">
                                 <h1 className="text-2xl font-bold text-heading mb-2">Подтверждение Email</h1>
                                 <p className="text-fiverr-text-muted">
-                                    Мы отправили пароль и 6-значный код на <br />
+                                    Мы отправили 6-значный код на <br />
                                     <span className="font-medium text-heading">{formData.email}</span>
                                 </p>
                             </div>

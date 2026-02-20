@@ -1,20 +1,25 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
-import { User, ArrowRight, ArrowLeft } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
+import { ArrowRight, ArrowLeft, Eye, EyeOff, RefreshCw } from 'lucide-react';
 
 export const RegisterPage: React.FC = () => {
     const navigate = useNavigate();
-    const { registerRequest, verifyEmail } = useAppContext();
+    const { registerRequest, verifyEmail, resendVerification } = useAppContext();
     const { addToast } = useToast();
     const [step, setStep] = useState(1);
     const [otpCode, setOtpCode] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [resending, setResending] = useState(false);
     const [formData, setFormData] = useState({
         username: '',
         email: '',
         firstName: '',
-        lastName: ''
+        lastName: '',
+        password: '',
+        passwordConfirm: '',
     });
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -23,28 +28,67 @@ export const RegisterPage: React.FC = () => {
 
     const handleRegisterSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (formData.password !== formData.passwordConfirm) {
+            addToast("Пароли не совпадают", 'error');
+            return;
+        }
+
+        if (formData.password.length < 8) {
+            addToast("Пароль должен содержать минимум 8 символов", 'error');
+            return;
+        }
+
+        setLoading(true);
         try {
             await registerRequest({
                 username: formData.username,
                 email: formData.email,
                 first_name: formData.firstName,
                 last_name: formData.lastName,
+                password: formData.password,
+                password_confirm: formData.passwordConfirm,
                 role: 'CLIENT'
             });
             addToast("Код подтверждения отправлен на почту", 'success');
             setStep(2);
-        } catch (error) {
-            addToast("Ошибка регистрации. Заполните корректно данные.", 'error');
+        } catch (error: any) {
+            const data = error.response?.data;
+            if (data) {
+                // Show first error message from server
+                const firstKey = Object.keys(data)[0];
+                const msg = Array.isArray(data[firstKey]) ? data[firstKey][0] : data[firstKey];
+                addToast(msg || "Ошибка регистрации", 'error');
+            } else {
+                addToast("Ошибка регистрации. Заполните корректно данные.", 'error');
+            }
+        } finally {
+            setLoading(false);
         }
     };
 
     const handleVerifySubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setLoading(true);
         try {
             await verifyEmail(formData.email, otpCode);
             navigate('/');
-        } catch (error) {
-            addToast("Неверный код подтверждения.", 'error');
+        } catch (error: any) {
+            const msg = error.response?.data?.error || "Неверный код подтверждения.";
+            addToast(msg, 'error');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleResend = async () => {
+        setResending(true);
+        try {
+            await resendVerification(formData.email);
+        } catch {
+            addToast("Ошибка повторной отправки", 'error');
+        } finally {
+            setResending(false);
         }
     };
 
@@ -120,16 +164,51 @@ export const RegisterPage: React.FC = () => {
                                         className="fiverr-input"
                                         placeholder="client@example.com"
                                     />
-                                    <p className="text-xs text-fiverr-text-dim mt-2">
-                                        На этот адрес мы отправим ваш пароль и код подтверждения.
-                                    </p>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-fiverr-text-muted mb-1.5">Пароль</label>
+                                    <div className="relative">
+                                        <input
+                                            type={showPassword ? "text" : "password"}
+                                            name="password"
+                                            required
+                                            minLength={8}
+                                            value={formData.password}
+                                            onChange={handleChange}
+                                            className="fiverr-input pr-12"
+                                            placeholder="Минимум 8 символов"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPassword(!showPassword)}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-fiverr-text-dim hover:text-heading transition-colors"
+                                        >
+                                            {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-fiverr-text-muted mb-1.5">Подтвердите пароль</label>
+                                    <input
+                                        type="password"
+                                        name="passwordConfirm"
+                                        required
+                                        minLength={8}
+                                        value={formData.passwordConfirm}
+                                        onChange={handleChange}
+                                        className="fiverr-input"
+                                        placeholder="Повторите пароль"
+                                    />
                                 </div>
 
                                 <button
                                     type="submit"
-                                    className="w-full fiverr-btn fiverr-btn-primary py-3.5 text-base mt-2"
+                                    disabled={loading}
+                                    className="w-full fiverr-btn fiverr-btn-primary py-3.5 text-base mt-2 disabled:opacity-50"
                                 >
-                                    Получить код
+                                    {loading ? 'Регистрация...' : 'Зарегистрироваться'}
                                     <ArrowRight className="w-5 h-5" />
                                 </button>
                             </form>
@@ -148,7 +227,7 @@ export const RegisterPage: React.FC = () => {
                             <div className="text-center mb-8">
                                 <h1 className="text-2xl font-bold text-heading mb-2">Подтверждение Email</h1>
                                 <p className="text-fiverr-text-muted">
-                                    Мы отправили пароль и 6-значный код на <br />
+                                    Мы отправили 6-значный код на <br />
                                     <span className="font-medium text-heading">{formData.email}</span>
                                 </p>
                             </div>
@@ -170,19 +249,31 @@ export const RegisterPage: React.FC = () => {
 
                                 <button
                                     type="submit"
-                                    className="w-full fiverr-btn fiverr-btn-primary py-3.5 text-base"
-                                    disabled={otpCode.length < 6}
+                                    className="w-full fiverr-btn fiverr-btn-primary py-3.5 text-base disabled:opacity-50"
+                                    disabled={otpCode.length < 6 || loading}
                                 >
-                                    Подтвердить и войти
+                                    {loading ? 'Проверка...' : 'Подтвердить и войти'}
                                 </button>
 
-                                <button
-                                    type="button"
-                                    onClick={() => setStep(1)}
-                                    className="w-full text-center text-sm text-fiverr-text-dim hover:text-heading transition-colors"
-                                >
-                                    Вернуться назад
-                                </button>
+                                <div className="flex items-center justify-between">
+                                    <button
+                                        type="button"
+                                        onClick={() => setStep(1)}
+                                        className="inline-flex items-center gap-1 text-sm text-fiverr-text-dim hover:text-heading transition-colors"
+                                    >
+                                        <ArrowLeft className="w-4 h-4" />
+                                        Назад
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={handleResend}
+                                        disabled={resending}
+                                        className="inline-flex items-center gap-1 text-sm text-fiverr-green hover:text-fiverr-green-dark transition-colors disabled:opacity-50"
+                                    >
+                                        <RefreshCw className={`w-4 h-4 ${resending ? 'animate-spin' : ''}`} />
+                                        {resending ? 'Отправка...' : 'Отправить снова'}
+                                    </button>
+                                </div>
                             </form>
                         </>
                     )}

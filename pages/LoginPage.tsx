@@ -2,18 +2,22 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { UserRole } from '../types';
 import { useAppContext } from '../context/AppContext';
+import { useToast } from '../context/ToastContext';
 import { User, Briefcase, ArrowRight, Eye, EyeOff } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const { login } = useAppContext();
+  const { addToast } = useToast();
   const [role, setRole] = useState<UserRole>(UserRole.CLIENT);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
     try {
       await login(email, password);
       if (role === UserRole.SPECIALIST) {
@@ -21,8 +25,10 @@ export const LoginPage: React.FC = () => {
       } else {
         navigate('/');
       }
-    } catch (error) {
-      alert("Ошибка входа! Проверьте email и пароль.");
+    } catch (error: any) {
+      addToast(error.message || "Ошибка входа! Проверьте email и пароль.", 'error');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -74,9 +80,9 @@ export const LoginPage: React.FC = () => {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-fiverr-text-muted mb-1.5">Email или телефон</label>
+              <label className="block text-sm font-medium text-fiverr-text-muted mb-1.5">Email</label>
               <input
-                type="text"
+                type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -85,7 +91,15 @@ export const LoginPage: React.FC = () => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-fiverr-text-muted mb-1.5">Пароль</label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-sm font-medium text-fiverr-text-muted">Пароль</label>
+                <Link
+                  to="/forgot-password"
+                  className="text-xs text-fiverr-green hover:text-fiverr-green-dark transition-colors"
+                >
+                  Забыли пароль?
+                </Link>
+              </div>
               <div className="relative">
                 <input
                   type={showPassword ? "text" : "password"}
@@ -107,9 +121,10 @@ export const LoginPage: React.FC = () => {
 
             <button
               type="submit"
-              className="w-full fiverr-btn fiverr-btn-primary py-3.5 text-base mt-2"
+              disabled={loading}
+              className="w-full fiverr-btn fiverr-btn-primary py-3.5 text-base mt-2 disabled:opacity-50"
             >
-              Войти
+              {loading ? 'Вход...' : 'Войти'}
               <ArrowRight className="w-5 h-5" />
             </button>
           </form>

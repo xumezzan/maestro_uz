@@ -12,6 +12,8 @@ import { CreateTaskPage } from './pages/CreateTaskPage';
 import { SpecialistDashboard } from './pages/SpecialistDashboard';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
+import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
+import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { SpecialistOnboardingPage } from './pages/SpecialistOnboardingPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { MessagesPage } from './pages/MessagesPage';
@@ -34,6 +36,8 @@ const AppContent: React.FC = () => {
           <Route path="/specialist-dashboard" element={<SpecialistDashboard />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/become-specialist" element={<SpecialistOnboardingPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/messages" element={<MessagesPage />} />
