@@ -149,25 +149,22 @@ export const HomePage: React.FC = () => {
               <div
                 key={card.id}
                 onClick={() => handleCategoryClick(card.title)}
-                className="group relative rounded-2xl overflow-hidden cursor-pointer fiverr-card h-48 md:h-56"
+                className="group relative rounded-2xl overflow-hidden cursor-pointer h-48 md:h-56 shadow-md hover:shadow-xl transition-shadow"
               >
                 {/* Background image */}
                 <img
                   src={card.img}
                   alt={t(card.title)}
-                  className="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all duration-500"
+                  className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-in-out"
                 />
-                {/* Gradient */}
-                <div className="absolute inset-0 bg-gradient-to-t from-fiverr-darker via-fiverr-darker/60 to-transparent" />
+                {/* Gradient: fixed dark gradient to ensure text is always visible regardless of theme */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/10 transition-opacity duration-300 group-hover:opacity-80" />
 
                 {/* Content */}
                 <div className="relative h-full flex flex-col justify-end p-5">
-                  <h3 className="text-lg font-bold text-heading mb-1 group-hover:text-fiverr-green transition-colors">
+                  <h3 className="text-lg md:text-xl font-bold text-white mb-1 group-hover:text-fiverr-green transition-colors drop-shadow-md">
                     {t(card.title)}
                   </h3>
-                  <div className="flex items-center gap-1 text-fiverr-green text-sm font-medium opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0 transition-all duration-300">
-                    {t('explore') || 'Подробнее'} <ChevronRight className="w-4 h-4" />
-                  </div>
                 </div>
               </div>
             ))}
@@ -186,30 +183,40 @@ export const HomePage: React.FC = () => {
       </section>
 
       {/* === How It Works === */}
-      <section className="py-16 md:py-20 relative section-bg">
-        <div className="fiverr-container">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-black text-heading mb-3">{t('howItWorks') || 'Как это работает'}</h2>
-            <p className="text-fiverr-text-muted max-w-lg mx-auto">{t('howItWorksDesc') || 'Три простых шага до результата'}</p>
+      <section className="py-16 md:py-24 relative overflow-hidden page-bg border-t border-fiverr-border">
+        {/* Abstract background elements */}
+        <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/3 w-[500px] h-[500px] bg-fiverr-green/5 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute bottom-0 left-0 translate-y-1/3 -translate-x-1/3 w-[500px] h-[500px] bg-fiverr-blue/5 rounded-full blur-[120px] pointer-events-none" />
+
+        <div className="fiverr-container relative z-10">
+          <div className="text-center mb-16 md:mb-20">
+            <h2 className="text-3xl md:text-5xl font-black text-heading mb-4 tracking-tight">{t('howItWorks') || 'Как это работает'}</h2>
+            <p className="text-fiverr-text-muted text-lg max-w-2xl mx-auto">{t('howItWorksDesc') || 'Найти идеального исполнителя проще, чем кажется. Всего три шага до готового результата.'}</p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8 md:gap-12">
+          <div className="grid md:grid-cols-3 gap-12 md:gap-8 relative">
+            {/* Connecting line for desktop */}
+            <div className="hidden md:block absolute top-[48px] left-[15%] right-[15%] h-[2px] bg-gradient-to-r from-transparent via-fiverr-border to-transparent -z-10" />
+
             {[
-              { icon: Search, title: t('step1Title') || 'Опишите задачу', desc: t('step1Desc') || 'Расскажите что нужно сделать и когда', num: '01', color: 'text-fiverr-green' },
-              { icon: Users, title: t('step2Title') || 'Получите отклики', desc: t('step2Desc') || 'Проверенные специалисты откликнутся на вашу задачу', num: '02', color: 'text-fiverr-yellow' },
-              { icon: CheckCircle2, title: t('step3Title') || 'Выберите лучшего', desc: t('step3Desc') || 'Сравните отзывы, цены и выберите идеального исполнителя', num: '03', color: 'text-fiverr-orange' },
+              { icon: Search, title: t('step1Title') || 'Опишите задачу', desc: t('step1Desc') || 'Расскажите что нужно сделать и когда', num: '1', color: 'text-fiverr-green', bg: 'bg-fiverr-green/10', border: 'border-fiverr-green/20' },
+              { icon: Users, title: t('step2Title') || 'Получите отклики', desc: t('step2Desc') || 'Проверенные специалисты откликнутся на вашу задачу', num: '2', color: 'text-fiverr-yellow', bg: 'bg-fiverr-yellow/10', border: 'border-fiverr-yellow/20' },
+              { icon: CheckCircle2, title: t('step3Title') || 'Выберите лучшего', desc: t('step3Desc') || 'Сравните отзывы, цены и выберите идеального исполнителя', num: '3', color: 'text-fiverr-orange', bg: 'bg-fiverr-orange/10', border: 'border-fiverr-orange/20' },
             ].map((step, idx) => (
-              <div key={idx} className="text-center group">
-                <div className="relative mx-auto mb-6">
-                  <div className={`w-20 h-20 rounded-2xl bg-fiverr-card border border-fiverr-border flex items-center justify-center mx-auto group-hover:border-fiverr-green/50 transition-colors`}>
-                    <step.icon className={`w-9 h-9 ${step.color}`} />
-                  </div>
-                  <span className="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-fiverr-green/10 border border-fiverr-green/30 text-fiverr-green text-xs font-bold flex items-center justify-center">
-                    {step.num}
-                  </span>
+              <div key={idx} className="relative text-center group">
+                {/* Number badge */}
+                <div className="absolute -top-4 md:-top-5 left-1/2 -translate-x-1/2 w-8 h-8 md:w-10 md:h-10 rounded-full bg-fiverr-card border border-fiverr-border text-heading font-black flex items-center justify-center text-sm md:text-base z-10 shadow-lg group-hover:scale-110 group-hover:bg-heading group-hover:text-fiverr-card transition-all duration-300">
+                  {step.num}
                 </div>
-                <h3 className="text-xl font-bold text-heading mb-3">{step.title}</h3>
-                <p className="text-fiverr-text-muted text-sm leading-relaxed max-w-xs mx-auto">{step.desc}</p>
+
+                {/* Icon Container */}
+                <div className={`w-20 h-20 md:w-24 md:h-24 mx-auto rounded-3xl ${step.bg} border ${step.border} flex items-center justify-center mb-6 md:mb-8 group-hover:-translate-y-2 group-hover:shadow-xl transition-all duration-300 relative overflow-hidden backdrop-blur-sm`}>
+                  <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  <step.icon className={`w-10 h-10 md:w-12 md:h-12 ${step.color} relative z-10`} />
+                </div>
+
+                <h3 className="text-xl md:text-2xl font-bold text-heading mb-3 md:mb-4">{step.title}</h3>
+                <p className="text-fiverr-text-muted text-sm md:text-base leading-relaxed max-w-[280px] mx-auto">{step.desc}</p>
               </div>
             ))}
           </div>
