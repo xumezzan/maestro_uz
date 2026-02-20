@@ -190,8 +190,12 @@ export const HomePage: React.FC = () => {
 
         <div className="fiverr-container relative z-10">
           <div className="text-center mb-16 md:mb-20">
-            <h2 className="text-3xl md:text-5xl font-black text-heading mb-4 tracking-tight">{t('howItWorks') || 'Как это работает'}</h2>
-            <p className="text-fiverr-text-muted text-lg max-w-2xl mx-auto">{t('howItWorksDesc') || 'Найти идеального исполнителя проще, чем кажется. Всего три шага до готового результата.'}</p>
+            <h2 className="text-3xl md:text-5xl font-black text-heading mb-4 tracking-tight">
+              {t('howItWorksTitle')}
+            </h2>
+            <p className="text-fiverr-text-muted text-lg max-w-2xl mx-auto">
+              {t('howItWorksSubtitle')}
+            </p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-12 md:gap-8 relative">
