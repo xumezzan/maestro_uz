@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
-from .models import User, SpecialistProfile, Task, TaskResponse, Message
+from .models import User, SpecialistProfile, Task, TaskResponse, Message, Review
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -137,3 +137,19 @@ class TaskSerializer(serializers.ModelSerializer):
         model = Task
         fields = ['id', 'client', 'title', 'description', 'category', 'budget',
                   'location', 'date_info', 'status', 'created_at', 'responses_count', 'assigned_specialist']
+
+
+class ReviewSerializer(serializers.ModelSerializer):
+    author_name = serializers.CharField(source='author.get_full_name', read_only=True)
+    author_avatar = serializers.CharField(source='author.avatar_url', read_only=True)
+
+    class Meta:
+        model = Review
+        fields = [
+            'id', 'specialist', 'author', 'author_name', 'author_avatar',
+            'task', 'text',
+            'score_overall', 'score_punctuality', 'score_quality',
+            'score_friendliness', 'score_honesty',
+            'created_at'
+        ]
+        read_only_fields = ['author', 'author_name', 'author_avatar']

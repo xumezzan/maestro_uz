@@ -7,8 +7,8 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.conf import settings
 from django.db.models import Q
-from .models import SpecialistProfile, Task, TaskResponse, User, Message
-from .serializers import SpecialistProfileSerializer, TaskSerializer, TaskResponseSerializer, MessageSerializer
+from .models import SpecialistProfile, Task, TaskResponse, User, Message, Review
+from .serializers import SpecialistProfileSerializer, TaskSerializer, TaskResponseSerializer, MessageSerializer, ReviewSerializer
 
 # Configure Gemini
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") 
@@ -247,3 +247,21 @@ class GenerateDescriptionView(APIView):
             return Response({"description": response.text.strip()})
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class ReviewViewSet(viewsets.ModelViewSet):
+    serializer_class = ReviewSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    def get_queryset(self):
+        specialist_id = self.request.query_params.get('specialist')
+        if specialist_id:
+            return Review.objects.filter(specialist_id=specialist_id).order_by('-created_at')
+        return Review.objects.all().order_by('-created_at')
+
+    def perform_create(self, serializer):
+        # Only clients can write reviews
+        if self.request.user.role != 'CLIENT':
+            from rest_framework import serializers as drf_serializers
+            raise drf_serializers.ValidationError("Только клиенты могут оставлять отзывы.")
+        serializer.save(author=self.request.user)

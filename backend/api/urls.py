@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import SpecialistViewSet, AdminSpecialistViewSet, TaskViewSet, TaskResponseViewSet, MessageViewSet, AIAnalyzeView, GenerateDescriptionView
+from .views import SpecialistViewSet, AdminSpecialistViewSet, TaskViewSet, TaskResponseViewSet, MessageViewSet, AIAnalyzeView, GenerateDescriptionView, ReviewViewSet
 from .auth_views import (
     RegisterView, VerifyEmailView, ResendVerificationView,
     LoginView, LogoutView, ForgotPasswordView, ResetPasswordView,
@@ -13,6 +13,7 @@ router.register(r'admin/specialists', AdminSpecialistViewSet, basename='admin-sp
 router.register(r'tasks', TaskViewSet)
 router.register(r'responses', TaskResponseViewSet, basename='task-response')
 router.register(r'messages', MessageViewSet, basename='message')
+router.register(r'reviews', ReviewViewSet, basename='review')
 
 urlpatterns = [
     path('', include(router.urls)),

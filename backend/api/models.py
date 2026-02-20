@@ -152,3 +152,45 @@ class Message(models.Model):
 
     def __str__(self):
         return f"From {self.sender} to {self.receiver}: {self.text[:20]}"
+
+
+class Review(models.Model):
+    specialist = models.ForeignKey(SpecialistProfile, on_delete=models.CASCADE, related_name='reviews')
+    author = models.ForeignKey(User, on_delete=models.CASCADE, related_name='written_reviews')
+    task = models.ForeignKey(Task, on_delete=models.SET_NULL, null=True, blank=True, related_name='reviews')
+    text = models.TextField(blank=True)
+
+    # Sub-scores (1-5)
+    score_overall = models.PositiveSmallIntegerField(default=5)       # Общая оценка
+    score_punctuality = models.PositiveSmallIntegerField(default=5)   # Пунктуальность
+    score_quality = models.PositiveSmallIntegerField(default=5)       # Качество работы
+    score_friendliness = models.PositiveSmallIntegerField(default=5)  # Вежливость
+    score_honesty = models.PositiveSmallIntegerField(default=5)       # Честность
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        # One review per client per task
+        unique_together = [('author', 'task')]
+
+    def __str__(self):
+        return f"{self.author.username} → {self.specialist}: {self.score_overall}★"
+
+
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from django.db.models import Avg
+
+@receiver(post_save, sender=Review)
+def update_specialist_rating(sender, instance, **kwargs):
+    """Recompute specialist rating whenever a review is saved."""
+    profile = instance.specialist
+    reviews_qs = profile.reviews.all()
+    count = reviews_qs.count()
+    if count == 0:
+        profile.rating = 0.0
+    else:
+        avg = reviews_qs.aggregate(avg=Avg('score_overall'))['avg']
+        profile.rating = round(avg, 2)
+    profile.reviews_count = count
+    profile.save(update_fields=['rating', 'reviews_count'])

@@ -2,10 +2,23 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
     MapPin, Star, BadgeCheck, MessageSquare, Heart, ArrowLeft,
-    Share2, Shield, Clock, Image as ImageIcon, Check, UserCheck, ChevronRight, AlertCircle, Banknote
+    Share2, Shield, Clock, Image as ImageIcon, Check, UserCheck, ChevronRight, AlertCircle, Banknote, Sparkles, X, Send
 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
+
+interface Review {
+    id: number;
+    author_name: string;
+    author_avatar?: string;
+    text: string;
+    score_overall: number;
+    score_punctuality: number;
+    score_quality: number;
+    score_friendliness: number;
+    score_honesty: number;
+    created_at: string;
+}
 
 export const SpecialistDetailsPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -17,6 +30,14 @@ export const SpecialistDetailsPage: React.FC = () => {
         (currentUser?.role === 'SPECIALIST' && currentUser.specialistProfile?.id === id ? currentUser.specialistProfile : null);
 
     const [activeTab, setActiveTab] = useState<'about' | 'services' | 'reviews' | 'portfolio'>('services');
+    const [reviews, setReviews] = useState<Review[]>([]);
+    const [loadingReviews, setLoadingReviews] = useState(false);
+    const [showReviewModal, setShowReviewModal] = useState(false);
+    const [reviewForm, setReviewForm] = useState({
+        text: '', score_overall: 5, score_punctuality: 5,
+        score_quality: 5, score_friendliness: 5, score_honesty: 5
+    });
+    const [submittingReview, setSubmittingReview] = useState(false);
 
     const existingConversation = conversations.find(c => c.participantId === id);
     const [isSelected, setIsSelected] = useState(!!existingConversation);
@@ -24,6 +45,36 @@ export const SpecialistDetailsPage: React.FC = () => {
     useEffect(() => {
         setIsSelected(!!existingConversation);
     }, [existingConversation]);
+
+    useEffect(() => {
+        if (id && activeTab === 'reviews') {
+            setLoadingReviews(true);
+            fetch(`http://localhost:8000/api/reviews/?specialist=${id}`)
+                .then(r => r.json())
+                .then(data => setReviews(Array.isArray(data) ? data : data.results || []))
+                .catch(() => { })
+                .finally(() => setLoadingReviews(false));
+        }
+    }, [id, activeTab]);
+
+    const handleSubmitReview = async () => {
+        const token = localStorage.getItem('access_token');
+        if (!token) { navigate('/login'); return; }
+        setSubmittingReview(true);
+        try {
+            const res = await fetch('http://localhost:8000/api/reviews/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ ...reviewForm, specialist: parseInt(id || '0') })
+            });
+            if (res.ok) {
+                const newReview = await res.json();
+                setReviews(prev => [newReview, ...prev]);
+                setShowReviewModal(false);
+            }
+        } catch (e) { }
+        finally { setSubmittingReview(false); }
+    };
 
     if (!specialist) {
         return (
@@ -274,44 +325,78 @@ export const SpecialistDetailsPage: React.FC = () => {
                                             <div className="flex text-fiverr-yellow mb-1">
                                                 {[1, 2, 3, 4, 5].map(s => <Star key={s} className="w-4 h-4 fill-current" />)}
                                             </div>
-                                            <span className="text-sm text-fiverr-text-muted">{specialist.reviewsCount} {t('reviews') || 'отзывов'}</span>
+                                            <span className="text-sm text-fiverr-text-muted">{specialist.reviewsCount || reviews.length} {t('reviews') || 'отзывов'}</span>
                                         </div>
 
-                                        <div className="flex-1 w-full space-y-2">
-                                            {ratingDistribution.map((row) => (
-                                                <div key={row.stars} className="flex items-center gap-3 text-sm">
-                                                    <div className="w-6 font-bold text-fiverr-text-dim text-right">{row.stars}</div>
-                                                    <div className="flex-1 h-2 bg-fiverr-card border border-fiverr-border rounded-full overflow-hidden">
-                                                        <div className="h-full bg-fiverr-yellow rounded-full" style={{ width: row.percent }} />
+                                        {/* Sub-score bars */}
+                                        <div className="flex-1 w-full space-y-3">
+                                            {[
+                                                { label: '⏰ Пунктуальность', key: 'score_punctuality' },
+                                                { label: '🏆 Качество', key: 'score_quality' },
+                                                { label: '😊 Вежливость', key: 'score_friendliness' },
+                                                { label: '🤝 Честность', key: 'score_honesty' },
+                                            ].map(({ label, key }) => {
+                                                const avg = reviews.length > 0
+                                                    ? reviews.reduce((sum, r) => sum + (r[key as keyof Review] as number), 0) / reviews.length
+                                                    : 5;
+                                                return (
+                                                    <div key={key} className="flex items-center gap-3 text-sm">
+                                                        <div className="w-36 font-medium text-fiverr-text-muted text-xs">{label}</div>
+                                                        <div className="flex-1 h-2 bg-fiverr-card border border-fiverr-border rounded-full overflow-hidden">
+                                                            <div className="h-full bg-fiverr-green rounded-full transition-all duration-500" style={{ width: `${(avg / 5) * 100}%` }} />
+                                                        </div>
+                                                        <div className="w-8 text-fiverr-text-dim text-right font-bold">{avg.toFixed(1)}</div>
                                                     </div>
-                                                    <div className="w-6 text-fiverr-text-dim text-right">{row.count}</div>
-                                                </div>
-                                            ))}
+                                                );
+                                            })}
                                         </div>
                                     </div>
 
-                                    {/* Reviews */}
+                                    {/* Leave Review button (clients only) */}
+                                    {currentUser?.role === 'CLIENT' && (
+                                        <button
+                                            onClick={() => setShowReviewModal(true)}
+                                            className="w-full py-3 fiverr-btn fiverr-btn-primary flex items-center justify-center gap-2"
+                                        >
+                                            <Sparkles className="w-4 h-4" />
+                                            Оставить отзыв
+                                        </button>
+                                    )}
+
+                                    {/* Review list */}
                                     <div className="space-y-6">
-                                        {mockReviews.map((review) => (
+                                        {loadingReviews && <p className="text-center text-fiverr-text-dim py-4">Загрузка...</p>}
+                                        {!loadingReviews && reviews.length === 0 && (
+                                            <p className="text-center text-fiverr-text-dim py-8">Отзывов пока нет. Будьте первым!</p>
+                                        )}
+                                        {reviews.map((review) => (
                                             <div key={review.id} className="border-b border-fiverr-border last:border-0 pb-6 last:pb-0">
-                                                <div className="flex justify-between items-start mb-2">
-                                                    <div>
-                                                        <div className="font-bold text-heading">{review.author}</div>
-                                                        <div className="text-xs text-fiverr-text-dim mt-0.5">{review.task}</div>
+                                                <div className="flex justify-between items-start mb-3">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-10 h-10 rounded-full bg-fiverr-green/20 flex items-center justify-center text-fiverr-green font-bold">
+                                                            {review.author_name?.[0] || '?'}
+                                                        </div>
+                                                        <div>
+                                                            <div className="font-bold text-heading">{review.author_name || 'Аноним'}</div>
+                                                            <div className="flex text-fiverr-yellow mt-0.5">
+                                                                {[...Array(review.score_overall)].map((_, i) => <Star key={i} className="w-3 h-3 fill-current" />)}
+                                                            </div>
+                                                        </div>
                                                     </div>
-                                                    <span className="text-xs text-fiverr-text-dim">{review.date}</span>
+                                                    <span className="text-xs text-fiverr-text-dim">
+                                                        {new Date(review.created_at).toLocaleDateString('ru-RU')}
+                                                    </span>
                                                 </div>
-                                                <div className="flex text-fiverr-yellow mb-3">
-                                                    {[...Array(review.rating)].map((_, i) => <Star key={i} className="w-3 h-3 fill-current" />)}
+                                                <p className="text-fiverr-text-muted text-sm leading-relaxed mb-3">{review.text}</p>
+                                                <div className="grid grid-cols-2 gap-2 text-xs text-fiverr-text-dim">
+                                                    <span>⏰ {review.score_punctuality}/5</span>
+                                                    <span>🏆 {review.score_quality}/5</span>
+                                                    <span>😊 {review.score_friendliness}/5</span>
+                                                    <span>🤝 {review.score_honesty}/5</span>
                                                 </div>
-                                                <p className="text-fiverr-text-muted text-sm leading-relaxed">{review.text}</p>
                                             </div>
                                         ))}
                                     </div>
-
-                                    <button className="w-full py-3 text-fiverr-text-muted font-medium bg-white/5 hover:bg-white/10 border border-fiverr-border rounded-xl transition-colors">
-                                        {t('showMoreReviews') || 'Показать ещё'}
-                                    </button>
                                 </div>
                             )}
                         </div>
@@ -350,6 +435,67 @@ export const SpecialistDetailsPage: React.FC = () => {
                     </button>
                 </div>
             </div>
+
+            {/* ===== Leave Review Modal ===== */}
+            {showReviewModal && (
+                <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                    <div className="w-full max-w-md bg-fiverr-card border border-fiverr-border rounded-2xl p-6 shadow-2xl">
+                        <div className="flex items-center justify-between mb-6">
+                            <h3 className="text-xl font-black text-heading flex items-center gap-2">
+                                <Sparkles className="w-5 h-5 text-fiverr-green" /> Оставить отзыв
+                            </h3>
+                            <button onClick={() => setShowReviewModal(false)} className="text-fiverr-text-dim hover:text-heading">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        <div className="space-y-4">
+                            {[
+                                { label: '⭐ Общая оценка', key: 'score_overall' },
+                                { label: '⏰ Пунктуальность', key: 'score_punctuality' },
+                                { label: '🏆 Качество работы', key: 'score_quality' },
+                                { label: '😊 Вежливость', key: 'score_friendliness' },
+                                { label: '🤝 Честность', key: 'score_honesty' },
+                            ].map(({ label, key }) => (
+                                <div key={key} className="flex items-center justify-between">
+                                    <span className="text-sm text-fiverr-text-muted">{label}</span>
+                                    <div className="flex gap-1">
+                                        {[1, 2, 3, 4, 5].map(val => (
+                                            <button
+                                                key={val}
+                                                onClick={() => setReviewForm(prev => ({ ...prev, [key]: val }))}
+                                                className={`w-8 h-8 rounded-lg text-lg transition-transform hover:scale-110 ${(reviewForm[key as keyof typeof reviewForm] as number) >= val
+                                                        ? 'text-fiverr-yellow'
+                                                        : 'text-fiverr-border'
+                                                    }`}
+                                            >
+                                                ★
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            ))}
+
+                            <textarea
+                                value={reviewForm.text}
+                                onChange={e => setReviewForm(prev => ({ ...prev, text: e.target.value }))}
+                                placeholder="Расскажите подробнее о работе специалиста..."
+                                className="w-full fiverr-input resize-none mt-2"
+                                rows={3}
+                            />
+                        </div>
+
+                        <button
+                            onClick={handleSubmitReview}
+                            disabled={submittingReview}
+                            className="w-full fiverr-btn fiverr-btn-primary py-3 mt-6 flex items-center justify-center gap-2"
+                        >
+                            <Send className="w-4 h-4" />
+                            {submittingReview ? 'Отправка...' : 'Отправить отзыв'}
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
