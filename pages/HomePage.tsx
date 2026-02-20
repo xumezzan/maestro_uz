@@ -16,6 +16,9 @@ export const HomePage: React.FC = () => {
   const { currentUser, specialists, tasks } = useAppContext();
   const specialistsCount = specialists.length;
   const tasksCount = tasks.length;
+  const averageRating = specialistsCount > 0
+    ? (specialists.reduce((acc, s) => acc + (s.rating || 0), 0) / specialistsCount).toFixed(1)
+    : "0.0";
 
   useEffect(() => {
     if (currentUser?.role === UserRole.SPECIALIST) {
@@ -101,16 +104,16 @@ export const HomePage: React.FC = () => {
           {/* Stats floating */}
           <div className="hidden lg:flex absolute right-12 top-1/2 -translate-y-1/2 flex-col gap-4">
             <div className="fiverr-card p-5 text-center min-w-[140px] animate-fade-in" style={{ animationDelay: '200ms' }}>
-              <div className="text-3xl font-black text-fiverr-green">{specialistsCount || '500'}+</div>
+              <div className="text-3xl font-black text-fiverr-green">{specialistsCount}</div>
               <div className="text-xs text-fiverr-text-muted mt-1 font-medium">{t('activeSpecialists') || 'Специалистов'}</div>
             </div>
             <div className="fiverr-card p-5 text-center min-w-[140px] animate-fade-in" style={{ animationDelay: '400ms' }}>
-              <div className="text-3xl font-black text-fiverr-yellow">{tasksCount || '1,200'}+</div>
+              <div className="text-3xl font-black text-fiverr-yellow">{tasksCount}</div>
               <div className="text-xs text-fiverr-text-muted mt-1 font-medium">{t('completedTasks') || 'Заказов'}</div>
             </div>
             <div className="fiverr-card p-5 text-center min-w-[140px] animate-fade-in" style={{ animationDelay: '600ms' }}>
-              <div className="text-3xl font-black text-fiverr-orange">4.9</div>
-              <div className="text-xs text-fiverr-text-muted mt-1 font-medium">{t('averageRating') || 'Средний рейтинг'}</div>
+              <div className="text-3xl font-black text-fiverr-orange">{averageRating}</div>
+              <div className="text-xs text-fiverr-text-muted mt-1 font-medium">{t('averageRating') || 'Средняя оценка'}</div>
             </div>
           </div>
         </div>
