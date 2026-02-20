@@ -28,7 +28,7 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-const API_BASE_URL = 'http://127.0.0.1:8000/api';
+const API_BASE_URL = '/api';
 
 // Tashkent Center Coordinates
 const TASHKENT_LAT = 41.2995;
@@ -322,7 +322,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const login = async (email: string, password: string) => {
     try {
-      const response = await api.post('/auth/token/', { username: email, password }); // Using email as username for now or we need to adjust backend
+      const response = await api.post('/token/', { username: email, password }); // Using email as username for now or we need to adjust backend
       // Note: Backend default TokenObtainPairView expects 'username' and 'password'. 
       // If we want to use email, we need custom view or client to send email as username if username=email.
       // For this MVP, let's assume username=email in registration.
