@@ -136,11 +136,21 @@ export const Header: React.FC = () => {
                 {language}
               </button>
 
+              {/* Role Switch (Become Specialist / I am Client) */}
+              <button
+                onClick={handleRoleSwitch}
+                className="hidden md:flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition-colors hover:text-fiverr-green"
+                style={{ color: 'var(--fiverr-text-muted)' }}
+              >
+                <Briefcase className="w-4 h-4" />
+                {isSpecialist ? t('iAmClient') || 'Я Заказчик' : t('iAmSpecialist') || 'Я Специалист'}
+              </button>
+
               {/* Create Task - for clients */}
               {!isSpecialist && currentUser && (
                 <Link
                   to="/create-task"
-                  className="hidden md:flex items-center gap-2 fiverr-btn fiverr-btn-primary text-sm py-2"
+                  className="hidden md:flex items-center gap-2 fiverr-btn fiverr-btn-primary text-sm py-2 ml-2"
                 >
                   <PlusCircle className="w-4 h-4" />
                   <span>{t('createOrder')}</span>
