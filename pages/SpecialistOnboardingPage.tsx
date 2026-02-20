@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import { ServiceCategory } from '../types';
 import { User, Briefcase, FileCheck, CheckCircle, Upload, ArrowRight, ArrowLeft } from 'lucide-react';
+import { PasswordStrengthMeter } from '../components/PasswordStrengthMeter';
 import { useToast } from '../context/ToastContext';
 
 export const SpecialistOnboardingPage: React.FC = () => {
@@ -124,6 +125,7 @@ export const SpecialistOnboardingPage: React.FC = () => {
                             <div>
                                 <label className="block text-sm font-medium text-fiverr-text-muted mb-1.5">Придумайте пароль</label>
                                 <input type="password" required value={formData.password} onChange={e => setFormData({ ...formData, password: e.target.value })} className="fiverr-input" />
+                                <PasswordStrengthMeter password={formData.password} />
                             </div>
 
                             <button type="submit" className="w-full mt-4 fiverr-btn fiverr-btn-primary py-3">

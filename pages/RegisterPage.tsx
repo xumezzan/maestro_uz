@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import { User, ArrowRight, Eye, EyeOff } from 'lucide-react';
+import { PasswordStrengthMeter } from '../components/PasswordStrengthMeter';
 
 export const RegisterPage: React.FC = () => {
     const navigate = useNavigate();
@@ -133,6 +134,7 @@ export const RegisterPage: React.FC = () => {
                                     {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                                 </button>
                             </div>
+                            <PasswordStrengthMeter password={formData.password} />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-fiverr-text-muted mb-1.5">Подтвердите пароль</label>
