@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { MapPin, User, Menu, Moon, Sun, PlusCircle, Search, LogOut, Globe, MessageSquare, ArrowUpRight, LayoutGrid, X, Briefcase, Bell, ChevronDown } from 'lucide-react';
+import { MapPin, User, Menu, Moon, Sun, PlusCircle, Search, LogOut, Globe, MessageSquare, ArrowUpRight, LayoutGrid, X, Briefcase, Bell, ChevronDown, Shield } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useTheme } from '../context/ThemeContext';
@@ -187,6 +187,15 @@ export const Header: React.FC = () => {
               {/* Auth */}
               {currentUser ? (
                 <div className="flex items-center gap-2 ml-1">
+                  {currentUser.isAdmin && (
+                    <Link
+                      to="/admin"
+                      className="p-2 rounded-lg transition-colors text-amber-500 hover:bg-amber-500/10"
+                      title="Кабинет Модератора"
+                    >
+                      <Shield className="w-5 h-5" />
+                    </Link>
+                  )}
                   <Link to="/profile">
                     <img
                       src={currentUser.avatarUrl}

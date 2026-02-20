@@ -1,7 +1,7 @@
 import os
 import json
 import google.generativeai as genai
-from rest_framework import viewsets, status, permissions
+from rest_framework import viewsets, status, permissions, serializers
 from rest_framework.decorators import action
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -14,6 +14,35 @@ from .serializers import SpecialistProfileSerializer, TaskSerializer, TaskRespon
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") 
 if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
+
+class AdminSpecialistViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Admin endpoint to review and verify specialist profiles.
+    """
+    serializer_class = SpecialistProfileSerializer
+    permission_classes = [permissions.IsAdminUser]
+
+    def get_queryset(self):
+        # By default, Admins want to see unverified profiles that HAVE uploaded a passport.
+        return SpecialistProfile.objects.filter(is_verified=False).exclude(passport_image='')
+
+    @action(detail=True, methods=['post'])
+    def verify(self, request, pk=None):
+        specialist = self.get_object()
+        specialist.is_verified = True
+        specialist.save(update_fields=['is_verified'])
+        return Response({"status": "verified"})
+
+    @action(detail=True, methods=['post'])
+    def reject(self, request, pk=None):
+        specialist = self.get_object()
+        specialist.is_verified = False
+        # Currently, rejecting means we might want them to re-upload.
+        # We can clear the passport image to prompt a re-upload, or just leave it False.
+        # For now, let's clear the image so it drops out of the pending queue.
+        specialist.passport_image = None
+        specialist.save(update_fields=['is_verified', 'passport_image'])
+        return Response({"status": "rejected"})
 
 class SpecialistViewSet(viewsets.ModelViewSet):
     queryset = SpecialistProfile.objects.all()
@@ -57,8 +86,39 @@ class TaskResponseViewSet(viewsets.ModelViewSet):
         # Create response as the current specialist
         if not hasattr(self.request.user, 'specialist_profile'):
              raise serializers.ValidationError("Only specialists can respond to tasks.")
+             
+        specialist = self.request.user.specialist_profile
         
-        serializer.save(specialist=self.request.user.specialist_profile)
+        # Free vs Paid business logic logic goes here
+        RESPONSE_FEE = 5000 # 5,000 UZS
+        
+        if specialist.balance < RESPONSE_FEE:
+            raise serializers.ValidationError({"error": "INSUFFICIENT_FUNDS", "message": "Недостаточно средств. Пожалуйста, пополните баланс."})
+            
+        # Deduct balance
+        specialist.balance -= RESPONSE_FEE
+        specialist.save(update_fields=['balance'])
+        
+        from .models import Transaction
+        Transaction.objects.create(
+            user=self.request.user,
+            amount=RESPONSE_FEE,
+            transaction_type=Transaction.Type.RESPONSE_FEE,
+            status=Transaction.Status.SUCCESS,
+            description="Оплата за отклик на задание"
+        )
+        
+        response_obj = serializer.save(specialist=specialist)
+        
+        # Trigger async email notification
+        from .tasks import send_notification_email
+        client_email = response_obj.task.client.email
+        if client_email:
+            send_notification_email.delay(
+                subject=f"Новый отклик на ваше задание: {response_obj.task.title}",
+                message=f"Здравствуйте!\n\nСпециалист {specialist.user.get_full_name()} откликнулся на ваше задание '{response_obj.task.title}'.\n\nЕго цена: {response_obj.price} UZS\nСообщение: {response_obj.message}\n\nЗайдите в личный кабинет, чтобы ответить.",
+                recipient_list=[client_email]
+            )
 
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def accept(self, request, pk=None):

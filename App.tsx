@@ -19,6 +19,8 @@ import { ProfilePage } from './pages/ProfilePage';
 import { MessagesPage } from './pages/MessagesPage';
 import { SpecialistDetailsPage } from './pages/SpecialistDetailsPage';
 import { CategoriesPage } from './pages/CategoriesPage';
+import { TopUpPage } from './pages/TopUpPage';
+import { AdminDashboard } from './pages/AdminDashboard';
 
 const AppContent: React.FC = () => {
   const { isDark } = useTheme();
@@ -41,6 +43,8 @@ const AppContent: React.FC = () => {
           <Route path="/become-specialist" element={<SpecialistOnboardingPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/messages" element={<MessagesPage />} />
+          <Route path="/top-up" element={<TopUpPage />} />
+          <Route path="/admin" element={<AdminDashboard />} />
         </Routes>
         <BottomNavigation />
       </div>

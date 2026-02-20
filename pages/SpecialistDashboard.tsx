@@ -299,6 +299,22 @@ export const SpecialistDashboard: React.FC = () => {
                                         )}
                                     </span>
                                 </div>
+                                <div className="flex justify-between items-center text-sm pt-4 border-t border-fiverr-border">
+                                    <span className="text-fiverr-text-muted flex items-center gap-1">
+                                        <Coins className="w-4 h-4" /> {t('balance') || 'Баланс'}
+                                    </span>
+                                    <div className="flex items-center gap-3">
+                                        <span className={`font-bold text-heading ${(currentUser.specialistProfile?.balance || 0) < 5000 ? 'text-fiverr-red' : ''}`}>
+                                            {currentUser.specialistProfile?.balance || 0} UZS
+                                        </span>
+                                        <button
+                                            onClick={() => navigate('/top-up')}
+                                            className="text-xs bg-fiverr-green/10 text-fiverr-green hover:bg-fiverr-green hover:text-white px-2 py-1 rounded transition-colors"
+                                        >
+                                            {t('topUp') || 'Пополнить'}
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>

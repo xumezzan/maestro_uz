@@ -83,9 +83,35 @@ class SpecialistProfile(models.Model):
     profile_image = models.ImageField(upload_to='specialist_avatars/', blank=True, null=True)
     telegram = models.CharField(max_length=100, blank=True)
     instagram = models.CharField(max_length=100, blank=True)
+    balance = models.DecimalField(max_digits=12, decimal_places=0, default=0) # UZS
 
     def __str__(self):
         return f"{self.user.get_full_name()} - {self.category}"
+
+class Transaction(models.Model):
+    class Type(models.TextChoices):
+        TOP_UP = 'TOP_UP', 'Пополнение баланса'
+        RESPONSE_FEE = 'RESPONSE_FEE', 'Плата за отклик'
+        DEAL_FEE = 'DEAL_FEE', 'Комиссия за сделку'
+
+    class Status(models.TextChoices):
+        PENDING = 'PENDING', 'Ожидает'
+        SUCCESS = 'SUCCESS', 'Успешно'
+        FAILED = 'FAILED', 'Ошибка'
+        CANCELED = 'CANCELED', 'Отменен'
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='transactions')
+    amount = models.DecimalField(max_digits=12, decimal_places=0) # UZS
+    transaction_type = models.CharField(max_length=20, choices=Type.choices)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
+    created_at = models.DateTimeField(auto_now_add=True)
+    description = models.CharField(max_length=255, blank=True)
+
+    # For payment gateways (Payme/Click)
+    gateway_transaction_id = models.CharField(max_length=255, blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.user.email} - {self.transaction_type} - {self.amount} UZS"
 
 class Task(models.Model):
     class Status(models.TextChoices):

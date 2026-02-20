@@ -8,7 +8,7 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['id', 'username', 'first_name', 'last_name', 'email', 'role',
-                  'avatar_url', 'phone', 'location']
+                  'avatar_url', 'phone', 'location', 'is_staff', 'is_superuser']
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -95,7 +95,7 @@ class SpecialistProfileSerializer(serializers.ModelSerializer):
         model = SpecialistProfile
         fields = ['id', 'name', 'category', 'rating', 'reviews_count', 'location',
                   'price_start', 'avatarUrl', 'description', 'is_verified', 'tags',
-                  'passport_image', 'profile_image', 'telegram', 'instagram']
+                  'passport_image', 'profile_image', 'telegram', 'instagram', 'balance']
 
 
 class TaskResponseSerializer(serializers.ModelSerializer):

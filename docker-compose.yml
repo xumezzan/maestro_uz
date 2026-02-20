@@ -14,7 +14,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    command: gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 4 --threads 4 --reload
+    command: daphne -b 0.0.0.0 -p 8000 config.asgi:application
     volumes:
       - ./backend:/app
       - static_volume:/app/static
@@ -25,6 +25,7 @@ services:
       - .env
     depends_on:
       - db
+      - redis
     environment:
       - DATABASE=postgres
       - SQL_ENGINE=django.db.backends.postgresql
@@ -33,6 +34,34 @@ services:
       - SQL_PASSWORD=hello_django
       - SQL_HOST=db
       - SQL_PORT=5432
+      - REDIS_URL=redis://redis:6379/0
+
+  redis:
+    image: redis:7-alpine
+    expose:
+      - 6379
+
+  celery:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: celery -A config worker -l info
+    volumes:
+      - ./backend:/app
+    env_file:
+      - .env
+    depends_on:
+      - db
+      - redis
+    environment:
+      - DATABASE=postgres
+      - SQL_ENGINE=django.db.backends.postgresql
+      - SQL_DATABASE=hello_django_dev
+      - SQL_USER=hello_django
+      - SQL_PASSWORD=hello_django
+      - SQL_HOST=db
+      - SQL_PORT=5432
+      - REDIS_URL=redis://redis:6379/0
 
   frontend:
     build:

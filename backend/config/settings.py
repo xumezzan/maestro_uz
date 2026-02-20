@@ -17,6 +17,7 @@ DEBUG = env.bool('DEBUG', default=True)
 ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['*'])
 
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -28,6 +29,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
+    'channels',
     # Local
     'api',
 ]
@@ -68,6 +70,29 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'config.wsgi.application'
+ASGI_APPLICATION = 'config.asgi.application'
+
+# ---------------------------------------------------------------------------
+# Channels (WebSockets)
+# ---------------------------------------------------------------------------
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [env('REDIS_URL', default='redis://127.0.0.1:6379/0')],
+        },
+    },
+}
+
+# ---------------------------------------------------------------------------
+# Celery Configuration
+# ---------------------------------------------------------------------------
+CELERY_BROKER_URL = env('REDIS_URL', default='redis://127.0.0.1:6379/0')
+CELERY_RESULT_BACKEND = env('REDIS_URL', default='redis://127.0.0.1:6379/1')
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'Asia/Tashkent'
 
 # ---------------------------------------------------------------------------
 # Database
@@ -110,6 +135,23 @@ STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 MEDIA_URL = 'media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+if not DEBUG:
+    # Use django-storages for media in production
+    if env('AWS_STORAGE_BUCKET_NAME', default=None):
+        DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+        AWS_ACCESS_KEY_ID = env('AWS_ACCESS_KEY_ID')
+        AWS_SECRET_ACCESS_KEY = env('AWS_SECRET_ACCESS_KEY')
+        AWS_STORAGE_BUCKET_NAME = env('AWS_STORAGE_BUCKET_NAME')
+        AWS_S3_REGION_NAME = env('AWS_S3_REGION_NAME', default='us-east-1')
+        AWS_S3_ENDPOINT_URL = env('AWS_S3_ENDPOINT_URL', default=None)
+        AWS_S3_SIGNATURE_VERSION = env('AWS_S3_SIGNATURE_VERSION', default='s3v4')
+        AWS_DEFAULT_ACL = 'public-read'
+        AWS_QUERYSTRING_AUTH = False
+        
+        # Optional: custom domain for S3
+        if env('AWS_S3_CUSTOM_DOMAIN', default=None):
+            AWS_S3_CUSTOM_DOMAIN = env('AWS_S3_CUSTOM_DOMAIN')
 
 # ---------------------------------------------------------------------------
 # Custom User Model
@@ -162,6 +204,15 @@ DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='noreply@maestro.uz')
 # Frontend URL (for email links)
 # ---------------------------------------------------------------------------
 FRONTEND_URL = env('FRONTEND_URL', default='http://localhost:5173')
+
+# ---------------------------------------------------------------------------
+# Payment Gateways (Payme / Click)
+# ---------------------------------------------------------------------------
+PAYME_MERCHANT_ID = env('PAYME_MERCHANT_ID', default='')
+PAYME_SECRET_KEY = env('PAYME_SECRET_KEY', default='')
+CLICK_MERCHANT_ID = env('CLICK_MERCHANT_ID', default='')
+CLICK_SERVICE_ID = env('CLICK_SERVICE_ID', default='')
+CLICK_SECRET_KEY = env('CLICK_SECRET_KEY', default='')
 
 # ---------------------------------------------------------------------------
 # Logging (no secrets)

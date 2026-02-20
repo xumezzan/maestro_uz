@@ -40,6 +40,8 @@ export interface Specialist {
   instagram?: string;
   lat?: number;
   lng?: number;
+  balance?: number;
+  passportUrl?: string;
 }
 
 export interface UserProfile {
@@ -51,6 +53,7 @@ export interface UserProfile {
   location?: string;
   specialistProfile?: Specialist; // Данные специалиста, если роль SPECIALIST
   favorites?: string[]; // IDs of favorite specialists
+  isAdmin?: boolean; // Флаг администратора/модератора
 }
 
 export interface TaskResponse {

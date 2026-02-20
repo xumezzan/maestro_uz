@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import useWebSocket, { ReadyState } from 'react-use-websocket';
 import { Task, TaskStatus, UserRole, ServiceCategory, UserProfile, Specialist, Conversation, Message, TaskResponse } from '../types';
 import { useToast } from './ToastContext';
 import api from '../services/api';
@@ -35,6 +36,7 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 const API_BASE_URL = '/api';
+const WS_BASE_URL = 'ws://localhost:8000/ws';
 
 // Tashkent Center Coordinates
 const TASHKENT_LAT = 41.2995;
@@ -55,6 +57,7 @@ const mapUserProfile = (userData: any): UserProfile => ({
   location: userData.location || 'Ташкент',
   avatarUrl: userData.avatar_url || `https://ui-avatars.com/api/?name=${userData.username}`,
   favorites: [],
+  isAdmin: userData.is_staff || false,
 });
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -80,11 +83,69 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     assignedSpecialist: t.assigned_specialist ? t.assigned_specialist.toString() : undefined
   });
 
+  // ── WebSocket Setup ──────────────────────────────────────────────────
+  const token = localStorage.getItem('accessToken');
+  const wsUrl = currentUser && token ? `${WS_BASE_URL}/chat/?token=${token}` : null;
+
+  const { sendJsonMessage, lastJsonMessage } = useWebSocket(wsUrl, {
+    shouldReconnect: (closeEvent) => !!currentUser, // Reconnect automatically if user is logged in
+    reconnectInterval: 3000,
+  });
+
+  // Handle incoming real-time messages
+  useEffect(() => {
+    if (lastJsonMessage !== null) {
+      const data = lastJsonMessage as any;
+      if (data.message) {
+        const m = data.message;
+
+        // Check if message is from myself (received via websocket echo)
+        const isMe = currentUser?.id === m.sender_id.toString();
+        const participantId = isMe ? m.receiver_id.toString() : m.sender_id.toString();
+
+        const socketMessage: Message = {
+          id: m.id.toString(),
+          senderId: m.sender_id.toString(),
+          text: m.text,
+          timestamp: new Date(m.created_at).getTime(),
+          isRead: isMe, // Mark as read if I sent it
+        };
+
+        setConversations(prev => {
+          let exists = false;
+          const updated = prev.map(c => {
+            if (c.participantId === participantId) {
+              exists = true;
+              // Avoid duplicates (if we also fetched it via HTTP)
+              if (!c.messages.some(existingMsg => existingMsg.id === socketMessage.id)) {
+                return { ...c, messages: [...c.messages, socketMessage] };
+              }
+            }
+            return c;
+          });
+
+          if (!exists) {
+            // New conversation started dynamically via socket
+            const newParticipantName = isMe ? "Пользователь" : "Новое сообщение"; // Ideally we'd fetch actual info
+            return [{
+              id: `conv_${participantId}`,
+              participantId,
+              participantName: isMe ? "Собеседник" : "Новое сообщение",
+              participantAvatar: `https://ui-avatars.com/api/?name=User`,
+              messages: [socketMessage]
+            }, ...updated];
+          }
+          return updated;
+        });
+      }
+    }
+  }, [lastJsonMessage, currentUser]);
+
   // ── Init auth + fetch data on mount ──────────────────────────────────
   useEffect(() => {
     const initAuth = async () => {
-      const token = localStorage.getItem('accessToken');
-      if (token) {
+      const currentToken = localStorage.getItem('accessToken');
+      if (currentToken) {
         try {
           const meRes = await api.get('/auth/me/');
           const userProfile = mapUserProfile(meRes.data);
@@ -262,11 +323,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         };
         setTaskResponses(prev => [newResponse, ...prev]);
         setTasks(prev => prev.map(t => t.id === taskId ? { ...t, responsesCount: t.responsesCount + 1 } : t));
+
+        // Optimistically deduct 5000 UZS locally so we don't have to refetch
+        if (currentUser.specialistProfile) {
+          const updatedProfile = {
+            ...currentUser.specialistProfile,
+            balance: (currentUser.specialistProfile.balance || 0) - 5000
+          };
+          updateUser({ ...currentUser, specialistProfile: updatedProfile });
+        }
+
         addToast('Отклик отправлен!', 'success');
+      } else {
+        const errorData = await res.json();
+        if (errorData.error === 'INSUFFICIENT_FUNDS' || (errorData[0] && errorData[0].error === 'INSUFFICIENT_FUNDS')) {
+          throw new Error("Недостаточно средств. Пожалуйста, пополните баланс.");
+        }
+        throw new Error("Ошибка сервера");
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error("Failed to send response", e);
-      addToast('Ошибка отправки отклика', 'error');
+      addToast(e.message || 'Ошибка отправки отклика', 'error');
+      throw e; // rethrow so component knows it failed
     }
   };
 
@@ -513,6 +591,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     try {
       const receiverId = conversation.participantId;
+
+      // Try WebSocket first
+      if (sendJsonMessage) {
+        sendJsonMessage({
+          type: 'chat_message',
+          receiver_id: receiverId,
+          text: text
+        });
+        // Real-time echo will add message to UI
+        return;
+      }
+
+      // Fallback to HTTP POST if WebSocket not available
       const res = await fetch(`${API_BASE_URL}/messages/`, {
         method: 'POST',
         headers: {
