@@ -56,15 +56,17 @@ class TaskSerializer(serializers.ModelSerializer):
                   'location', 'date_info', 'status', 'created_at', 'responses_count', 'assigned_specialist']
 
 class RegisterSerializer(serializers.ModelSerializer):
-    role = serializers.ChoiceField(choices=User.Role.choices, default='client')
+    role = serializers.ChoiceField(choices=User.Role.choices, default=User.Role.CLIENT)
 
     class Meta:
         model = User
         fields = ['username', 'email', 'first_name', 'last_name', 'role']
 
     def create(self, validated_data):
-        from django.contrib.auth.models import BaseUserManager
-        password = BaseUserManager().make_random_password(length=12)
+        import secrets
+        import string
+        alphabet = string.ascii_letters + string.digits
+        password = ''.join(secrets.choice(alphabet) for i in range(12))
         
         user = User.objects.create_user(
             username=validated_data['username'],
@@ -72,7 +74,7 @@ class RegisterSerializer(serializers.ModelSerializer):
             password=password,
             first_name=validated_data.get('first_name', ''),
             last_name=validated_data.get('last_name', ''),
-            role=validated_data.get('role', 'client'),
+            role=validated_data.get('role', User.Role.CLIENT),
             is_active=False  # Must verify email first
         )
         # Store raw password temporarily on the user object so the view can access it to send the email
