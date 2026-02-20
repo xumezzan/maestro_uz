@@ -88,12 +88,12 @@ export const HomePage: React.FC = () => {
 
             {/* Popular tags */}
             <div className="flex flex-wrap items-center gap-2 text-sm">
-              <span className="text-white/40 font-medium">{t('popularRequests') || 'Популярное'}:</span>
+              <span className="text-white/80 font-medium">{t('popularRequests') || 'Часто ищут:'}</span>
               {POPULAR_REQUESTS.map((req, idx) => (
                 <button
                   key={idx}
                   onClick={() => handleCategoryClick(req)}
-                  className="fiverr-tag"
+                  className="px-4 py-1.5 rounded-full border border-white/30 text-white/90 hover:bg-white/10 hover:text-white transition-colors"
                 >
                   {t(req)}
                 </button>
