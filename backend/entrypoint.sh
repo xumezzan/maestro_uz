@@ -1,10 +1,9 @@
 #!/bin/sh
 
-if [ "$DATABASE" = "postgres" ]
-then
+if echo "$DATABASE_URL" | grep -q "postgres"; then
     echo "Waiting for postgres..."
 
-    while ! nc -z $SQL_HOST $SQL_PORT; do
+    while ! nc -z db 5432; do
       sleep 0.1
     done
 

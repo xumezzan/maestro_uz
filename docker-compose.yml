@@ -27,13 +27,7 @@ services:
       - db
       - redis
     environment:
-      - DATABASE=postgres
-      - SQL_ENGINE=django.db.backends.postgresql
-      - SQL_DATABASE=hello_django_dev
-      - SQL_USER=hello_django
-      - SQL_PASSWORD=hello_django
-      - SQL_HOST=db
-      - SQL_PORT=5432
+      - DATABASE_URL=postgres://hello_django:hello_django@db:5432/hello_django_dev
       - REDIS_URL=redis://redis:6379/0
 
   redis:
@@ -54,13 +48,7 @@ services:
       - db
       - redis
     environment:
-      - DATABASE=postgres
-      - SQL_ENGINE=django.db.backends.postgresql
-      - SQL_DATABASE=hello_django_dev
-      - SQL_USER=hello_django
-      - SQL_PASSWORD=hello_django
-      - SQL_HOST=db
-      - SQL_PORT=5432
+      - DATABASE_URL=postgres://hello_django:hello_django@db:5432/hello_django_dev
       - REDIS_URL=redis://redis:6379/0
 
   frontend:
