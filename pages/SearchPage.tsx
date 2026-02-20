@@ -7,6 +7,7 @@ import { useAppContext } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
 import { analyzeServiceRequest } from '../services/geminiService';
 import { AIAnalysisResult, Specialist, ServiceCategory } from '../types';
+import { matchSpecialists } from '../services/matchingAlgorithm';
 
 const ITEMS_PER_PAGE = 6;
 
@@ -41,36 +42,44 @@ export const SearchPage: React.FC = () => {
         if (query) {
           const result = await analyzeServiceRequest(query);
           setAnalysis(result);
-          const matched = specialists.filter(s => {
-            if (s.category === result.category) return true;
-            if (result.relevantTags.some(tag => s.tags.includes(tag))) return true;
-            return false;
+
+          const matched = matchSpecialists(specialists, {
+            aiAnalysis: result,
+            keyword: query
           });
+
           setFilteredSpecialists(matched);
         } else if (categoryParam) {
           const term = categoryParam.toLowerCase();
-          const matched = specialists.filter(s => {
-            if (s.category === categoryParam) return true;
-            if (s.tags.some(t => t.toLowerCase().includes(term))) return true;
-            const isRepair = term.includes('сантех') || term.includes('электр') || term.includes('плиточ') || term.includes('двери') || term.includes('ремонт');
-            if (isRepair && s.category === ServiceCategory.REPAIR) return true;
-            const isTutor = term.includes('математ') || term.includes('английс') || term.includes('русский') || term.includes('язык') || term.includes('репетитор');
-            if (isTutor && s.category === ServiceCategory.TUTORS) return true;
-            const isBeauty = term.includes('маникюр') || term.includes('красота') || term.includes('волос');
-            if (isBeauty && s.category === ServiceCategory.BEAUTY) return true;
-            if (s.name.toLowerCase().includes(term) || s.description.toLowerCase().includes(term)) return true;
-            return false;
-          });
-          setFilteredSpecialists(matched);
-          setAnalysis({
+
+          const mockAnalysis = {
             category: ServiceCategory.OTHER,
             suggestedTitle: `${t('specialist')}: ${t(categoryParam) || categoryParam}`,
             suggestedDescription: "...",
             estimatedPriceRange: "...",
             relevantTags: [categoryParam]
+          };
+
+          // Hardcode mappings or use AI, but fallback to manual keyword match
+          const isRepair = term.includes('сантех') || term.includes('электр') || term.includes('плиточ') || term.includes('двери') || term.includes('ремонт');
+          if (isRepair) Object.assign(mockAnalysis, { category: ServiceCategory.REPAIR });
+
+          const isTutor = term.includes('математ') || term.includes('английс') || term.includes('русский') || term.includes('язык') || term.includes('репетитор');
+          if (isTutor) Object.assign(mockAnalysis, { category: ServiceCategory.TUTORS });
+
+          const isBeauty = term.includes('маникюр') || term.includes('красота') || term.includes('волос');
+          if (isBeauty) Object.assign(mockAnalysis, { category: ServiceCategory.BEAUTY });
+
+          const matched = matchSpecialists(specialists, {
+            category: mockAnalysis.category,
+            keyword: term,
+            tags: [term]
           });
+
+          setFilteredSpecialists(matched.length > 0 ? matched : specialists);
+          setAnalysis(mockAnalysis);
         } else {
-          setFilteredSpecialists(specialists);
+          setFilteredSpecialists(specialists.sort((a, b) => b.rating - a.rating));
         }
       } catch (err) {
         setError("AI Error");

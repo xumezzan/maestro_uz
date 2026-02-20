@@ -5,6 +5,7 @@ import { useAppContext } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
 import { analyzeServiceRequest, generateImprovedDescription } from '../services/geminiService';
 import { ServiceCategory, TaskStatus, Specialist } from '../types';
+import { matchSpecialists } from '../services/matchingAlgorithm';
 
 export const CreateTaskPage: React.FC = () => {
   const navigate = useNavigate();
@@ -86,11 +87,20 @@ export const CreateTaskPage: React.FC = () => {
     setMatchingAI(true);
 
     setTimeout(() => {
-      let matched = specialists.filter(s => s.category === formData.category);
-      if (matched.length === 0) matched = specialists;
-      const finalMatches = matched.sort((a, b) => b.rating - a.rating).slice(0, 3);
-      setRecommendedPros(finalMatches);
-      setSelectedProIds(finalMatches.map(m => m.id));
+      // Use advanced matching algorithm
+      const finalMatches = matchSpecialists(specialists, {
+        category: formData.category,
+        location: formData.location,
+        keyword: formData.title + " " + formData.description
+      }).slice(0, 3);
+
+      // Fallback if no specific match
+      const fallbackMatches = finalMatches.length > 0
+        ? finalMatches
+        : specialists.sort((a, b) => b.rating - a.rating).slice(0, 3);
+
+      setRecommendedPros(fallbackMatches);
+      setSelectedProIds(fallbackMatches.map(m => m.id));
       setMatchingAI(false);
     }, 2000);
   };
