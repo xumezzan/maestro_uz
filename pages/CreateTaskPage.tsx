@@ -141,8 +141,13 @@ export const CreateTaskPage: React.FC = () => {
           {/* STEP 1: Smart Input */}
           {step === 1 && (
             <div className="p-8 flex-1 flex flex-col">
-              <h2 className="text-2xl font-black text-heading mb-2">{t('findSpecialistTitle') || 'Найти специалиста'}</h2>
-              <p className="text-fiverr-text-muted mb-6">{t('describeTask') || 'Опишите задачу'}</p>
+              <div className="flex items-center gap-2 mb-2">
+                <h2 className="text-2xl font-black text-heading">{t('findSpecialistTitle') || 'Найти специалиста'}</h2>
+                <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-fiverr-green/10 border border-fiverr-green/20 text-fiverr-green text-xs font-bold">
+                  <Sparkles className="w-3.5 h-3.5" /> AI
+                </div>
+              </div>
+              <p className="text-fiverr-text-muted mb-6">{t('describeTask') || 'Просто опишите проблему своими словами, и AI сам создаст задание'}</p>
 
               <div className="flex-1">
                 <textarea

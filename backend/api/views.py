@@ -169,30 +169,51 @@ class AIAnalyzeView(APIView):
             return Response({"error": "Query is required"}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            model = genai.GenerativeModel('gemini-1.5-flash')
+            # Use the newer google.genai client
+            from google import genai
+            from google.genai import types
+            from pydantic import BaseModel
             
+            client = genai.Client(api_key=GEMINI_API_KEY)
+            
+            # Define schema to guarantee JSON response matches UI
+            class TaskAnalysis(BaseModel):
+                category: str
+                suggestedTitle: str
+                suggestedDescription: str
+                estimatedPriceRange: str
+                relevantTags: list[str]
+                location: str | None = None
+
             prompt = f"""
             You are an AI assistant for a service marketplace in Uzbekistan (Maestro).
             Analyze the following user request: "{user_query}"
 
-            Return ONLY a valid JSON object with the following fields:
-            - category: (String) One of [Ремонт, Репетиторы, Уборка, IT и фриланс, Красота, Перевозки, Бухгалтеры и юристы, Спорт, Домашний персонал, Артисты, Другое]
-            - suggestedTitle: (String) A short, professional title for the task.
-            - suggestedDescription: (String) An improved, professional description.
-            - estimatedPriceRange: (String) e.g. "100 000 - 200 000 UZS".
-            - relevantTags: (Array of Strings) e.g. ["Сантехника", "Кран"].
-            - location: (String or null) Extracted city/district if present, else null.
-            
-            Do not include markdown formatting like ```json.
+            Provide appropriate values for:
+            - category: One of [Ремонт, Репетиторы, Уборка, IT и фриланс, Красота, Перевозки, Бухгалтеры и юристы, Спорт, Домашний персонал, Артисты, Другое]
+            - suggestedTitle: A short, professional title for the task.
+            - suggestedDescription: An improved, professional description out of the user's raw text.
+            - estimatedPriceRange: e.g. "100 000 - 200 000 UZS".
+            - relevantTags: List of strings e.g. ["Сантехника", "Кран"].
+            - location: Extracted city/district if present, else null.
             """
 
-            response = model.generate_content(prompt)
-            clean_text = response.text.replace('```json', '').replace('```', '').strip()
-            data = json.loads(clean_text)
+            response = client.models.generate_content(
+                model='gemini-2.5-flash',
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    response_schema=TaskAnalysis,
+                    temperature=0.4,
+                ),
+            )
             
+            data = json.loads(response.text)
             return Response(data)
 
         except Exception as e:
+            import traceback
+            traceback.print_exc()
             # Fallback on error
             return Response({
                 "category": "Другое",

@@ -1,7 +1,7 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { AIAnalysisResult, ServiceCategory } from "../types";
 
-const BACKEND_URL = '/api';
+const BACKEND_URL = 'http://localhost:8000/api';
 // Fallback client-side key if backend is down (Optional, safe to remove if backend is reliable)
 // Lazy init to prevent crash if key is missing
 const getAIClient = () => {
