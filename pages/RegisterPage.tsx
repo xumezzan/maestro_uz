@@ -54,13 +54,13 @@ export const RegisterPage: React.FC = () => {
             setStep(2);
         } catch (error: any) {
             const data = error.response?.data;
-            if (data) {
+            if (data && typeof data === 'object' && !Array.isArray(data)) {
                 // Show first error message from server
                 const firstKey = Object.keys(data)[0];
                 const msg = Array.isArray(data[firstKey]) ? data[firstKey][0] : data[firstKey];
                 addToast(msg || "Ошибка регистрации", 'error');
             } else {
-                addToast("Ошибка регистрации. Заполните корректно данные.", 'error');
+                addToast("Сервер недоступен или вернул непредвиденную ошибку.", 'error');
             }
         } finally {
             setLoading(false);
