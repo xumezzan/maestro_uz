@@ -67,7 +67,7 @@ export const SpecialistOnboardingPage: React.FC = () => {
             <div className="max-w-2xl mx-auto px-4">
 
                 <div className="text-center mb-8">
-                    <h1 className="text-3xl font-black text-white mb-2">Стать специалистом <span className="text-fiverr-green">maestro.</span></h1>
+                    <h1 className="text-3xl font-black text-heading mb-2">Стать специалистом <span className="text-fiverr-green">maestro.</span></h1>
                     <p className="text-fiverr-text-muted">Находите заказы и зарабатывайте без посредников</p>
                 </div>
 
