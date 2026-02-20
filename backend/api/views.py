@@ -1,6 +1,5 @@
 import os
 import json
-import google.generativeai as genai
 from rest_framework import viewsets, status, permissions, serializers
 from rest_framework.decorators import action
 from rest_framework.views import APIView
@@ -10,10 +9,8 @@ from django.db.models import Q
 from .models import SpecialistProfile, Task, TaskResponse, User, Message, Review
 from .serializers import SpecialistProfileSerializer, TaskSerializer, TaskResponseSerializer, MessageSerializer, ReviewSerializer
 
-# Configure Gemini
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") 
-if GEMINI_API_KEY:
-    genai.configure(api_key=GEMINI_API_KEY)
+# Configure Gemini API Key (used by AIAnalyzeView and GenerateDescriptionView)
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 class AdminSpecialistViewSet(viewsets.ReadOnlyModelViewSet):
     """
