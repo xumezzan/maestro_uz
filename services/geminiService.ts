@@ -6,7 +6,7 @@ const BACKEND_URL = '/api';
 // Lazy init to prevent crash if key is missing
 const getAIClient = () => {
   // @ts-ignore
-  const apiKey = process.env.API_KEY || (import.meta.env && import.meta.env.VITE_GEMINI_API_KEY) || '';
+  const apiKey = (typeof process !== 'undefined' && process.env.API_KEY) ? process.env.API_KEY : ((import.meta.env && import.meta.env.VITE_GEMINI_API_KEY) || '');
   if (!apiKey) {
     console.warn("Gemini API Key is missing");
   }
@@ -88,7 +88,7 @@ export const analyzeServiceRequest = async (userQuery: string): Promise<AIAnalys
   // 1. Try Backend API first (Secure way)
   try {
     const response = await api.post('/ai/analyze/', { query: userQuery });
-    if (response.data) {
+    if (response.data && response.data.category) {
       return response.data;
     }
   } catch (e) {
@@ -98,7 +98,9 @@ export const analyzeServiceRequest = async (userQuery: string): Promise<AIAnalys
   // 2. Fallback to Client-side API call
   try {
     // Only attempt if we have a key, otherwise jump to keyword match
-    if (!process.env.API_KEY) throw new Error("No API Key");
+    // @ts-ignore
+    const apiKey = (import.meta.env && import.meta.env.VITE_GEMINI_API_KEY) || '';
+    if (!apiKey) throw new Error("No API Key");
 
     const model = "gemini-3-flash-preview";
     const prompt = `
@@ -167,7 +169,7 @@ export const generateImprovedDescription = async (title: string, userQuery: stri
   // Try Backend first
   try {
     const response = await api.post('/ai/generate-description/', { title, description: userQuery });
-    if (response.data && response.data.description) {
+    if (response.data && response.data.description && response.data.description !== userQuery) {
       return response.data.description;
     }
   } catch (e) {
@@ -176,7 +178,9 @@ export const generateImprovedDescription = async (title: string, userQuery: stri
 
   // Fallback
   try {
-    if (!process.env.API_KEY) throw new Error("No API Key");
+    // @ts-ignore
+    const apiKey = (import.meta.env && import.meta.env.VITE_GEMINI_API_KEY) || '';
+    if (!apiKey) throw new Error("No API Key");
 
     const model = "gemini-3-flash-preview";
     const prompt = `
