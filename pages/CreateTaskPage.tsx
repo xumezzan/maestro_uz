@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Sparkles, ArrowRight, CheckCircle, MapPin, Calendar, Banknote, Loader2, Mail, Wallet, UserCheck, Star, Send, RefreshCw, Zap } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
-import { analyzeServiceRequest, generateImprovedDescription } from '../services/geminiService';
+import { analyzeServiceRequest } from '../services/geminiService';
 import { ServiceCategory, TaskStatus, Specialist } from '../types';
 import { matchSpecialists } from '../services/matchingAlgorithm';
 
@@ -15,7 +15,6 @@ export const CreateTaskPage: React.FC = () => {
   const [step, setStep] = useState(1);
   const [loadingAI, setLoadingAI] = useState(false);
   const [matchingAI, setMatchingAI] = useState(false);
-  const [isRegenerating, setIsRegenerating] = useState(false);
 
   const [query, setQuery] = useState('');
   const [formData, setFormData] = useState({
@@ -67,19 +66,7 @@ export const CreateTaskPage: React.FC = () => {
     }
   };
 
-  const handleRegenerateDescription = async () => {
-    const sourceText = query || formData.title;
-    if (!sourceText) return;
-    setIsRegenerating(true);
-    try {
-      const newDesc = await generateImprovedDescription(formData.title, sourceText);
-      setFormData(prev => ({ ...prev, description: newDesc }));
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsRegenerating(false);
-    }
-  };
+
 
   const handleNextToMatching = (e: React.FormEvent) => {
     e.preventDefault();
@@ -210,14 +197,7 @@ export const CreateTaskPage: React.FC = () => {
                 <div>
                   <div className="flex justify-between items-center mb-1.5">
                     <label className="block text-sm font-medium text-fiverr-text-muted">{t('taskDesc') || 'Описание'}</label>
-                    <button
-                      type="button"
-                      onClick={handleRegenerateDescription}
-                      disabled={isRegenerating}
-                      className="text-xs text-fiverr-green hover:text-fiverr-green-dark font-bold flex items-center gap-1"
-                    >
-                      <Zap className="w-3 h-3" /> {t('aiImprove') || 'Улучшить AI'}
-                    </button>
+
                   </div>
                   <textarea
                     required
