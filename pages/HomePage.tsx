@@ -41,8 +41,6 @@ export const HomePage: React.FC = () => {
     navigate(`/search?category=${encodeURIComponent(cat)}`);
   };
 
-  const trustedLogos = ['Amazon', 'Google', 'Netflix', 'Meta', 'PayPal'];
-
   return (
     <div className="flex flex-col min-h-screen page-bg">
 
@@ -115,18 +113,6 @@ export const HomePage: React.FC = () => {
               <div className="text-3xl font-black text-fiverr-orange">{averageRating}</div>
               <div className="text-xs text-fiverr-text-muted mt-1 font-medium">{t('averageRating') || 'Средняя оценка'}</div>
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* === Trusted By === */}
-      <section className="py-8 border-b border-fiverr-border page-bg">
-        <div className="fiverr-container">
-          <div className="flex items-center justify-center gap-8 md:gap-16 text-fiverr-text-dim opacity-40">
-            <span className="text-sm font-medium whitespace-nowrap">{t('trustedBy') || 'Нам доверяют'}:</span>
-            {trustedLogos.map(logo => (
-              <span key={logo} className="text-lg font-bold tracking-wider hidden sm:block">{logo}</span>
-            ))}
           </div>
         </div>
       </section>
