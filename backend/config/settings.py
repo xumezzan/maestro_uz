@@ -14,7 +14,10 @@ SECRET_KEY = env('DJANGO_SECRET_KEY', default='django-insecure-change-me-in-prod
 
 DEBUG = env.bool('DEBUG', default=True)
 
-ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['*'])
+ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['*', '89.167.75.82', 'localhost', '127.0.0.1'])
+if '*' not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.extend(['*', '89.167.75.82'])
+
 
 # ---------------------------------------------------------------------------
 # Production Security (only when DEBUG=False)
