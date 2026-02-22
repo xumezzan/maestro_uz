@@ -14,10 +14,10 @@ interface AppContextType {
   acceptResponse: (responseId: string) => Promise<void>;
   deleteTask: (taskId: string) => void;
   currentUser: UserProfile | null;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<UserProfile>;
   register: (data: any) => Promise<void>;
   registerRequest: (data: any) => Promise<void>;
-  verifyEmail: (email: string, code: string) => Promise<void>;
+  verifyEmail: (email: string, code: string) => Promise<UserProfile>;
   registerSpecialist: (data: Partial<Specialist> & { email: string, phone: string, passportFile?: File, profileFile?: File }) => Promise<void>;
   logout: () => void;
   updateUser: (user: UserProfile) => void;
@@ -36,7 +36,7 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 const API_BASE_URL = '/api';
-const WS_BASE_URL = 'ws://localhost:8000/ws';
+const WS_BASE_URL = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}/ws`;
 
 // Tashkent Center Coordinates
 const TASHKENT_LAT = 41.2995;
@@ -163,9 +163,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const fetchData = async () => {
       try {
         // 1. Specialists
-        const specRes = await fetch(`${API_BASE_URL}/specialists/`);
-        if (specRes.ok) {
-          const specData = await specRes.json();
+        const specRes = await api.get('/specialists/');
+        if (specRes.data) {
+          const specData = specRes.data;
           if (Array.isArray(specData) && specData.length > 0) {
             setSpecialists(specData.map((s: any) => {
               const coords = getRandomCoords();
@@ -191,20 +191,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
 
         // 2. Tasks
-        const taskRes = await fetch(`${API_BASE_URL}/tasks/`);
-        if (taskRes.ok) {
-          const taskData = await taskRes.json();
+        const taskRes = await api.get('/tasks/');
+        if (taskRes.data) {
+          const taskData = taskRes.data;
           if (Array.isArray(taskData) && taskData.length > 0) {
             const realTasks = taskData.map(mapTask);
+            setTasks(realTasks); // Actually set the tasks!
           }
         }
 
         // 3. Responses
-        const resRes = await fetch(`${API_BASE_URL}/responses/`, {
-          headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` }
-        });
-        if (resRes.ok) {
-          const resData = await resRes.json();
+        const resRes = await api.get('/responses/');
+        if (resRes.data) {
+          const resData = resRes.data;
           if (Array.isArray(resData)) {
             setTaskResponses(resData.map((r: any) => ({
               id: r.id.toString(),
@@ -221,11 +220,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
 
         // 4. Messages
-        const msgRes = await fetch(`${API_BASE_URL}/messages/`, {
-          headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` }
-        });
-        if (msgRes.ok) {
-          const msgData = await msgRes.json();
+        const msgRes = await api.get('/messages/');
+        if (msgRes.data) {
+          const msgData = msgRes.data;
           if (Array.isArray(msgData)) {
             const convMap = new Map<string, Conversation>();
             msgData.forEach((m: any) => {
@@ -268,21 +265,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const addTask = async (task: Task) => {
     setTasks(prev => [task, ...prev]);
     try {
-      const response = await fetch(`${API_BASE_URL}/tasks/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: task.title,
-          description: task.description,
-          category: task.category,
-          budget: task.budget,
-          location: task.location,
-          date_info: task.date,
-          status: task.status
-        })
+      const response = await api.post('/tasks/', {
+        title: task.title,
+        description: task.description,
+        category: task.category,
+        budget: task.budget,
+        location: task.location,
+        date_info: task.date,
+        status: task.status
       });
-      if (response.ok) {
-        const savedTask = await response.json();
+      if (response.data) {
+        const savedTask = response.data;
         setTasks(prev => prev.map(t => t.id === task.id ? mapTask(savedTask) : t));
       }
     } catch (e) {
@@ -293,23 +286,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const deleteTask = async (taskId: string) => {
     setTasks(prev => prev.filter(t => t.id !== taskId));
     try {
-      await fetch(`${API_BASE_URL}/tasks/${taskId}/`, { method: 'DELETE' });
-    } catch (e) { console.error(e); }
+      await api.delete(`/tasks/${taskId}/`);
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   const addResponse = async (taskId: string, message: string, price: number) => {
     if (!currentUser || currentUser.role !== UserRole.SPECIALIST || !currentUser.specialistProfile) return;
     try {
-      const res = await fetch(`${API_BASE_URL}/responses/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
-        },
-        body: JSON.stringify({ task: taskId, message, price })
-      });
-      if (res.ok) {
-        const r = await res.json();
+      const res = await api.post('/responses/', { task: taskId, message, price });
+      if (res.data) {
+        const r = res.data;
         const newResponse: TaskResponse = {
           id: r.id.toString(),
           taskId: r.task.toString(),
@@ -335,8 +323,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         addToast('Отклик отправлен!', 'success');
       } else {
-        const errorData = await res.json();
-        if (errorData.error === 'INSUFFICIENT_FUNDS' || (errorData[0] && errorData[0].error === 'INSUFFICIENT_FUNDS')) {
+        const errorData = res.data;
+        if (errorData.error === 'INSUFFICIENT_FUNDS') {
           throw new Error("Недостаточно средств. Пожалуйста, пополните баланс.");
         }
         throw new Error("Ошибка сервера");
@@ -350,15 +338,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const acceptResponse = async (responseId: string) => {
     try {
-      const res = await fetch(`${API_BASE_URL}/responses/${responseId}/accept/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
-        }
-      });
-      if (res.ok) {
-        const data = await res.json();
+      const res = await api.post(`/responses/${responseId}/accept/`);
+      if (res.data) {
+        const data = res.data;
         setTasks(prev => prev.map(t => t.id === data.task_id.toString() ? {
           ...t,
           status: TaskStatus.IN_PROGRESS,
@@ -385,6 +367,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setCurrentUser(userProfile);
       setRole(userData.role as UserRole);
       addToast("Вы успешно вошли!", 'success');
+      return userProfile;
     } catch (error: any) {
       const msg = error.response?.data?.error || "Неверный логин или пароль";
       throw new Error(msg);
@@ -422,6 +405,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setCurrentUser(userProfile);
       setRole(userData.role as UserRole);
       addToast("Email успешно подтверждён!", 'success');
+      return userProfile;
     } catch (error: any) {
       console.error("Verification failed", error);
       throw error;
@@ -547,13 +531,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         formData.append('profile_image', data.profileFile);
       }
 
-      const response = await fetch(`${API_BASE_URL}/specialists/`, {
-        method: 'POST',
-        body: formData
+      const response = await api.post('/specialists/', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
       });
 
-      if (response.ok) {
-        const savedSpec = await response.json();
+      if (response.data) {
+        const savedSpec = response.data;
         const realSpec = { ...newSpecialist, id: savedSpec.id.toString() };
         setSpecialists(prev => prev.map(s => s.id === tempId ? realSpec : s));
         setCurrentUser({ ...newUser, id: savedSpec.id.toString(), specialistProfile: realSpec });
@@ -604,17 +589,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
 
       // Fallback to HTTP POST if WebSocket not available
-      const res = await fetch(`${API_BASE_URL}/messages/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
-        },
-        body: JSON.stringify({ receiver: receiverId, text })
-      });
+      const res = await api.post('/messages/', { receiver: receiverId, text });
 
-      if (res.ok) {
-        const m = await res.json();
+      if (res.data) {
+        const m = res.data;
         const newMessage: Message = {
           id: m.id.toString(),
           senderId: currentUser.id,

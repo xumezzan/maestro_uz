@@ -66,9 +66,8 @@ export const MessagesPage: React.FC = () => {
 
     const handleSend = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!selectedConversationId) return;
-        if (!inputText.trim() && !selectedFile) return;
-        await sendMessage(selectedConversationId, inputText, selectedFile ? { url: selectedFile, type: 'image' } : undefined);
+        if (!selectedConversation) return;
+        await sendMessage(selectedConversation.participantId, inputText, selectedFile ? { url: selectedFile, type: 'image' } : undefined);
         setInputText('');
         setSelectedFile(null);
     };

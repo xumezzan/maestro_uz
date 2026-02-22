@@ -71,8 +71,12 @@ export const RegisterPage: React.FC = () => {
         e.preventDefault();
         setLoading(true);
         try {
-            await verifyEmail(formData.email, otpCode);
-            navigate('/');
+            const user = await verifyEmail(formData.email, otpCode);
+            if (user.role === 'SPECIALIST') {
+                navigate('/specialist-dashboard');
+            } else {
+                navigate('/');
+            }
         } catch (error: any) {
             const msg = error.response?.data?.error || "Неверный код подтверждения.";
             addToast(msg, 'error');

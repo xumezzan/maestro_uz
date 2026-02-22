@@ -19,8 +19,8 @@ export const LoginPage: React.FC = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      await login(email, password);
-      if (role === UserRole.SPECIALIST) {
+      const user = await login(email, password);
+      if (user.role === UserRole.SPECIALIST) {
         navigate('/specialist-dashboard');
       } else {
         navigate('/');

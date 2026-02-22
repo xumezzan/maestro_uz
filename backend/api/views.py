@@ -47,13 +47,57 @@ class SpecialistViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
     def perform_create(self, serializer):
-        # User must be authenticated to create a profile (and effectively become a specialist)
-        # In this flow, we assume the user registers first, then creates a profile
         if hasattr(self.request.user, 'specialist_profile'):
-             # Already has a profile
-             return 
-        
+            return
         serializer.save(user=self.request.user)
+
+    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated], url_path='my-stats')
+    def my_stats(self, request):
+        """Analytics KPIs for the currently logged-in specialist."""
+        try:
+            profile = request.user.specialist_profile
+        except SpecialistProfile.DoesNotExist:
+            return Response({'error': 'No specialist profile found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        from django.db.models import Sum, Avg
+        from .models import Transaction
+
+        # Earnings: all successful TOP_UP transactions for this specialist's user
+        earnings_qs = Transaction.objects.filter(
+            user=request.user,
+            transaction_type=Transaction.Type.TOP_UP,
+            status=Transaction.Status.SUCCESS
+        )
+        total_earnings = earnings_qs.aggregate(total=Sum('amount'))['total'] or 0
+
+        # Responses
+        all_responses = TaskResponse.objects.filter(specialist=profile)
+        total_responses = all_responses.count()
+        accepted = all_responses.filter(task__assigned_specialist=profile).count()
+        conversion = round((accepted / total_responses * 100), 1) if total_responses > 0 else 0.0
+
+        # Recent reviews (last 3)
+        recent_reviews = profile.reviews.order_by('-created_at')[:3]
+        recent_reviews_data = [
+            {
+                'author': r.author.get_full_name() or r.author.username,
+                'score_overall': r.score_overall,
+                'text': r.text,
+                'created_at': r.created_at.strftime('%d.%m.%Y'),
+            }
+            for r in recent_reviews
+        ]
+
+        return Response({
+            'balance': float(profile.balance),
+            'total_earnings': float(total_earnings),
+            'total_responses': total_responses,
+            'accepted_responses': accepted,
+            'conversion_rate': conversion,
+            'rating': float(profile.rating),
+            'reviews_count': profile.reviews_count,
+            'recent_reviews': recent_reviews_data,
+        })
 
 
 class TaskViewSet(viewsets.ModelViewSet):
@@ -71,7 +115,7 @@ class TaskResponseViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        if user.role == 'client':
+        if user.role == 'CLIENT':
             # Clients see responses to THEIR tasks
             return TaskResponse.objects.filter(task__client=user)
         elif hasattr(user, 'specialist_profile'):

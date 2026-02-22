@@ -1,7 +1,7 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { AIAnalysisResult, ServiceCategory } from "../types";
-
-const BACKEND_URL = 'http://localhost:8000/api';
+import api from "./api";
+const BACKEND_URL = '/api';
 // Fallback client-side key if backend is down (Optional, safe to remove if backend is reliable)
 // Lazy init to prevent crash if key is missing
 const getAIClient = () => {
@@ -87,14 +87,9 @@ const determineCategoryByKeywords = (query: string): ServiceCategory => {
 export const analyzeServiceRequest = async (userQuery: string): Promise<AIAnalysisResult> => {
   // 1. Try Backend API first (Secure way)
   try {
-    const response = await fetch(`${BACKEND_URL}/ai/analyze/`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query: userQuery })
-    });
-
-    if (response.ok) {
-      return await response.json();
+    const response = await api.post('/ai/analyze/', { query: userQuery });
+    if (response.data) {
+      return response.data;
     }
   } catch (e) {
     // Backend down, ignore and proceed to client-side
@@ -171,15 +166,9 @@ export const analyzeServiceRequest = async (userQuery: string): Promise<AIAnalys
 export const generateImprovedDescription = async (title: string, userQuery: string): Promise<string> => {
   // Try Backend first
   try {
-    const response = await fetch(`${BACKEND_URL}/ai/generate-description/`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, description: userQuery })
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      if (data.description) return data.description;
+    const response = await api.post('/ai/generate-description/', { title, description: userQuery });
+    if (response.data && response.data.description) {
+      return response.data.description;
     }
   } catch (e) {
     // Ignore
