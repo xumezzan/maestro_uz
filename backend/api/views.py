@@ -190,11 +190,15 @@ class TaskResponseViewSet(viewsets.ModelViewSet):
         from .tasks import send_notification_email
         client_email = response_obj.task.client.email
         if client_email:
-            send_notification_email.delay(
-                subject=f"Новый отклик на ваше задание: {response_obj.task.title}",
-                message=f"Здравствуйте!\n\nСпециалист {specialist.user.get_full_name()} откликнулся на ваше задание '{response_obj.task.title}'.\n\nЕго цена: {response_obj.price} UZS\nСообщение: {response_obj.message}\n\nЗайдите в личный кабинет, чтобы ответить.",
-                recipient_list=[client_email]
-            )
+            try:
+                send_notification_email.delay(
+                    subject=f"Новый отклик на ваше задание: {response_obj.task.title}",
+                    message=f"Здравствуйте!\n\nСпециалист {specialist.user.get_full_name()} откликнулся на ваше задание '{response_obj.task.title}'.\n\nЕго цена: {response_obj.price} UZS\nСообщение: {response_obj.message}\n\nЗайдите в личный кабинет, чтобы ответить.",
+                    recipient_list=[client_email]
+                )
+            except Exception as e:
+                import logging
+                logging.error("Failed to send notification email (is Redis running?): %s", e)
 
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def accept(self, request, pk=None):
