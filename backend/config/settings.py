@@ -2,6 +2,7 @@ from pathlib import Path
 import os
 import environ
 from datetime import timedelta
+from django.core.exceptions import ImproperlyConfigured
 
 # Initialize environ
 env = environ.Env()
@@ -14,22 +15,43 @@ SECRET_KEY = env('DJANGO_SECRET_KEY', default='django-insecure-change-me-in-prod
 
 DEBUG = env.bool('DEBUG', default=True)
 
-ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['*', '89.167.75.82', 'localhost', '127.0.0.1'])
-if '*' not in ALLOWED_HOSTS:
-    ALLOWED_HOSTS.extend(['*', '89.167.75.82'])
+if DEBUG:
+    ALLOWED_HOSTS = env.list(
+        'ALLOWED_HOSTS',
+        default=['localhost', '127.0.0.1', '[::1]', 'testserver', '89.167.75.82'],
+    )
+else:
+    ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=[])
 
 
 # ---------------------------------------------------------------------------
 # Production Security (only when DEBUG=False)
 # ---------------------------------------------------------------------------
 if not DEBUG:
+    if SECRET_KEY in ['django-insecure-change-me-in-production', 'change-me-in-production-use-long-random-string']:
+        raise ImproperlyConfigured("DJANGO_SECRET_KEY must be set in production.")
+    if not ALLOWED_HOSTS:
+        raise ImproperlyConfigured("ALLOWED_HOSTS must be set in production.")
+    if '*' in ALLOWED_HOSTS:
+        raise ImproperlyConfigured("ALLOWED_HOSTS cannot contain '*' in production.")
+
     SECURE_HSTS_SECONDS = 31536000  # 1 year
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    X_FRAME_OPTIONS = 'DENY'
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = 'Lax'
+    CSRF_COOKIE_SAMESITE = 'Lax'
+    REFERRER_POLICY = 'strict-origin-when-cross-origin'
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+else:
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = 'Lax'
+    CSRF_COOKIE_SAMESITE = 'Lax'
 
 INSTALLED_APPS = [
     'daphne',
@@ -63,8 +85,12 @@ MIDDLEWARE = [
 # ---------------------------------------------------------------------------
 # CORS
 # ---------------------------------------------------------------------------
-CORS_ALLOW_ALL_ORIGINS = env.bool('CORS_ALLOW_ALL_ORIGINS', default=True)
+CORS_ALLOW_ALL_ORIGINS = env.bool('CORS_ALLOW_ALL_ORIGINS', default=DEBUG)
 CORS_ALLOWED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS', default=[])
+CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[])
+
+if not DEBUG and CORS_ALLOW_ALL_ORIGINS:
+    raise ImproperlyConfigured("CORS_ALLOW_ALL_ORIGINS must be False in production.")
 
 ROOT_URLCONF = 'config.urls'
 
@@ -115,6 +141,31 @@ CELERY_TIMEZONE = 'Asia/Tashkent'
 DATABASES = {
     'default': env.db('DATABASE_URL', default=f'sqlite:///{BASE_DIR / "db.sqlite3"}')
 }
+DATABASES['default']['CONN_MAX_AGE'] = env.int('DB_CONN_MAX_AGE', default=60)
+
+# ---------------------------------------------------------------------------
+# Cache (used by throttling + websocket anti-flood)
+# ---------------------------------------------------------------------------
+USE_REDIS_CACHE = env.bool('USE_REDIS_CACHE', default=not DEBUG)
+CACHE_URL = env('CACHE_URL', default=env('REDIS_URL', default='redis://127.0.0.1:6379/2'))
+if USE_REDIS_CACHE:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'LOCATION': CACHE_URL,
+            'KEY_PREFIX': env('CACHE_KEY_PREFIX', default='maestro'),
+        }
+    }
+else:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'maestro-local-dev-cache',
+        }
+    }
+
+if not DEBUG and not USE_REDIS_CACHE:
+    raise ImproperlyConfigured("USE_REDIS_CACHE must be enabled in production.")
 
 # ---------------------------------------------------------------------------
 # Password Validation
@@ -185,7 +236,26 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.AllowAny',
     ],
+    'DEFAULT_THROTTLE_RATES': {
+        # Auth endpoints
+        'auth_register': env('THROTTLE_AUTH_REGISTER', default='5/hour'),
+        'auth_verify_email': env('THROTTLE_AUTH_VERIFY_EMAIL', default='20/hour'),
+        'auth_resend_verification': env('THROTTLE_AUTH_RESEND_VERIFICATION', default='5/hour'),
+        'auth_login': env('THROTTLE_AUTH_LOGIN', default='10/minute'),
+        'auth_refresh': env('THROTTLE_AUTH_REFRESH', default='30/minute'),
+        'auth_forgot_password': env('THROTTLE_AUTH_FORGOT_PASSWORD', default='5/hour'),
+        'auth_reset_password': env('THROTTLE_AUTH_RESET_PASSWORD', default='10/hour'),
+        # Chat HTTP endpoint
+        'chat_http_send': env('THROTTLE_CHAT_HTTP_SEND', default='120/minute'),
+    },
 }
+
+# ---------------------------------------------------------------------------
+# WebSocket Chat Limits
+# ---------------------------------------------------------------------------
+CHAT_WS_RATE_LIMIT = env.int('CHAT_WS_RATE_LIMIT', default=30)
+CHAT_WS_RATE_WINDOW_SECONDS = env.int('CHAT_WS_RATE_WINDOW_SECONDS', default=10)
+CHAT_WS_MAX_TEXT_LENGTH = env.int('CHAT_WS_MAX_TEXT_LENGTH', default=2000)
 
 # ---------------------------------------------------------------------------
 # Simple JWT — production-ready settings
