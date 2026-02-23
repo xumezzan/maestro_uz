@@ -41,4 +41,4 @@ def test_preflight_check_fails_with_wildcard_host():
         with patch('api.management.commands.preflight_check.check_database', return_value=(True, None)):
             with patch('api.management.commands.preflight_check.check_redis', return_value=(True, None)):
                 with pytest.raises(CommandError):
-                    call_command('preflight_check')
+                    call_command('preflight_check', require_production=True)
