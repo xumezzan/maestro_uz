@@ -3,7 +3,7 @@ import { useAppContext } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useToast } from '../context/ToastContext';
 import { UserRole, TaskStatus, UserProfile } from '../types';
-import { MOCK_SPECIALISTS } from '../constants';
+
 import { SpecialistCard } from '../components/SpecialistCard';
 import {
     User, Mail, Phone, MapPin, Star,
@@ -12,7 +12,7 @@ import {
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 
 export const ProfilePage: React.FC = () => {
-    const { currentUser, tasks, updateUser, deleteTask, taskResponses, startChat, acceptResponse } = useAppContext();
+    const { currentUser, tasks, specialists, updateUser, deleteTask, taskResponses, startChat, acceptResponse } = useAppContext();
     const { t } = useLanguage();
     const { addToast } = useToast();
     const navigate = useNavigate();
@@ -68,7 +68,7 @@ export const ProfilePage: React.FC = () => {
         return t.status === historyFilter;
     });
 
-    const favoriteSpecialists = MOCK_SPECIALISTS.filter(s => currentUser.favorites?.includes(s.id));
+    const favoriteSpecialists = specialists.filter(s => currentUser.favorites?.includes(s.id));
 
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
@@ -209,12 +209,7 @@ export const ProfilePage: React.FC = () => {
                                         </div>
                                         <span className="truncate">{currentUser.email}</span>
                                     </div>
-                                    <div className="flex items-center gap-3 text-sm text-fiverr-text-muted">
-                                        <div className="w-8 h-8 rounded-full bg-white/5 border border-fiverr-border flex items-center justify-center flex-shrink-0 text-fiverr-text-dim">
-                                            <Phone className="w-4 h-4" />
-                                        </div>
-                                        <span>{isSpecialist ? '+998 90 123 45 67' : '+998 ** *** ** **'}</span>
-                                    </div>
+
                                     <div className="flex items-center gap-3 text-sm text-fiverr-text-muted">
                                         <div className="w-8 h-8 rounded-full bg-white/5 border border-fiverr-border flex items-center justify-center flex-shrink-0 text-fiverr-text-dim">
                                             <MapPin className="w-4 h-4" />
@@ -279,9 +274,9 @@ export const ProfilePage: React.FC = () => {
                                     <>
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                             {[
-                                                { icon: CheckCircle, value: '15', label: t('completedOrders'), color: 'text-fiverr-green', bg: 'bg-fiverr-green/10' },
+                                                { icon: CheckCircle, value: '0', label: t('completedOrders'), color: 'text-fiverr-green', bg: 'bg-fiverr-green/10' },
                                                 { icon: Star, value: specialistData?.rating && specialistData.rating > 0 ? specialistData.rating.toFixed(1) : '-', label: t('avgRating'), color: 'text-fiverr-yellow', bg: 'bg-fiverr-yellow/10' },
-                                                { icon: Calendar, value: `2 ${t('experienceYears')}`, label: t('exp'), color: 'text-fiverr-blue', bg: 'bg-fiverr-blue/10' },
+                                                { icon: Calendar, value: '-', label: t('exp'), color: 'text-fiverr-blue', bg: 'bg-fiverr-blue/10' },
                                             ].map((stat, idx) => (
                                                 <div key={idx} className="fiverr-card p-5 flex flex-col items-center justify-center text-center">
                                                     <div className={`w-10 h-10 ${stat.bg} ${stat.color} rounded-full flex items-center justify-center mb-3`}>

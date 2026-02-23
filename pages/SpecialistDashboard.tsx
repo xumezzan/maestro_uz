@@ -430,9 +430,10 @@ export const SpecialistDashboard: React.FC = () => {
                                         <span className="text-fiverr-text-muted">{t('availableResponses') || 'Отклики'}</span>
                                         <span className="font-bold text-heading">{taskResponses.filter(r => r.specialistId === currentUser.specialistProfile?.id).length}</span>
                                     </div>
+                                    {/* TODO: Connect to backend for actual profile views */}
                                     <div className="flex justify-between items-center text-sm">
                                         <span className="text-fiverr-text-muted">{t('profileViews') || 'Просмотры'}</span>
-                                        <span className="font-bold text-heading">0</span>
+                                        <span className="font-bold text-heading">-</span>
                                     </div>
                                     <div className="flex justify-between items-center text-sm">
                                         <span className="text-fiverr-text-muted">{t('rating') || 'Рейтинг'}</span>

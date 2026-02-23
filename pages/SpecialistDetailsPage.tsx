@@ -105,30 +105,7 @@ export const SpecialistDetailsPage: React.FC = () => {
         else navigate(`/messages?participantId=${specialist.id}`);
     };
 
-    const mockServices = [
-        { name: t('consultation'), price: t('free') || 'Бесплатно' },
-        { name: t('homeVisit'), price: `${t('from') || 'от'} 50 000 UZS` },
-        { name: t('diagnostic'), price: `${t('from') || 'от'} 80 000 UZS` },
-        { name: t('mainWork'), price: `${new Intl.NumberFormat('ru-RU').format(specialist.priceStart)} UZS` },
-        { name: t('urgent'), price: '+ 50%' },
-    ];
 
-    const ratingDistribution = [
-        { stars: 5, count: specialist.reviewsCount - 2, percent: '85%' },
-        { stars: 4, count: 2, percent: '10%' },
-        { stars: 3, count: 0, percent: '0%' },
-        { stars: 2, count: 0, percent: '0%' },
-        { stars: 1, count: 0, percent: '0%' },
-    ];
-
-    const mockReviews = Array.from({ length: 3 }).map((_, i) => ({
-        id: i,
-        author: ['Азиз К.', 'Мадина Р.', 'Дмитрий В.'][i],
-        rating: 5,
-        date: ['2 дня назад', '12 августа', '30 июля'][i],
-        task: ['Установка смесителя', 'Уборка квартиры', 'Ремонт розетки'][i],
-        text: ['Отличный специалист! Сделал все быстро и качественно.', 'Рекомендую, очень вежливый и профессиональный подход.', 'Цена соответствует качеству. Спасибо!'][i]
-    }));
 
     // TODO: Fetch actual portfolio from backend when ready
     const mockPortfolio: string[] = [];
@@ -269,12 +246,10 @@ export const SpecialistDetailsPage: React.FC = () => {
                                     </div>
 
                                     <div className="divide-y divide-fiverr-border">
-                                        {mockServices.map((service, idx) => (
-                                            <div key={idx} className="flex justify-between items-center py-4 hover:bg-white/3 -mx-4 px-4 rounded-lg transition-colors">
-                                                <span className="text-fiverr-text font-medium">{service.name}</span>
-                                                <span className="font-bold text-heading">{service.price}</span>
-                                            </div>
-                                        ))}
+                                        <div className="flex justify-between items-center py-4 hover:bg-white/3 -mx-4 px-4 rounded-lg transition-colors">
+                                            <span className="text-fiverr-text font-medium">{t('mainWork') || 'Основная услуга'}</span>
+                                            <span className="font-bold text-heading">{new Intl.NumberFormat('ru-RU').format(specialist.priceStart)} UZS</span>
+                                        </div>
                                     </div>
 
                                     <div className="bg-fiverr-blue/10 border border-fiverr-blue/20 p-4 rounded-xl flex gap-3 text-sm text-fiverr-blue mt-6">

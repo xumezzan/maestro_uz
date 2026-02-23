@@ -44,9 +44,7 @@ export const CategoriesPage: React.FC = () => {
                   <h2 className="text-lg font-bold text-heading group-hover:text-fiverr-green transition-colors">
                     {t(category.title)}
                   </h2>
-                  <span className="fiverr-badge fiverr-badge-green text-xs">
-                    {category.count.toLocaleString()}
-                  </span>
+
                 </div>
                 <div className="w-10 h-0.5 bg-fiverr-border rounded-full group-hover:bg-fiverr-green group-hover:w-16 transition-all duration-500" />
               </div>
