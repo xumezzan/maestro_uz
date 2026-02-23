@@ -8,7 +8,7 @@ import { useToast } from '../context/ToastContext';
 
 export const SpecialistOnboardingPage: React.FC = () => {
     const navigate = useNavigate();
-    const { registerSpecialist } = useAppContext();
+    const { registerSpecialist, registerRequest, verifyEmail } = useAppContext();
     const { addToast } = useToast();
     const [step, setStep] = useState(1);
     const [otpCode, setOtpCode] = useState('');
@@ -50,7 +50,7 @@ export const SpecialistOnboardingPage: React.FC = () => {
             }
 
             // First we request the base user registration to send OTP
-            await useAppContext().registerRequest({
+            await registerRequest({
                 username: formData.email.split('@')[0] + Date.now().toString().slice(-4), // generate unique username
                 email: formData.email,
                 first_name: formData.name,
@@ -79,7 +79,6 @@ export const SpecialistOnboardingPage: React.FC = () => {
     const handleVerifyAndFinish = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            const { verifyEmail, registerSpecialist } = useAppContext();
             // Verify and log in
             await verifyEmail(formData.email, otpCode);
             // Now that user is authenticated with tokens, create specialist profile
@@ -98,7 +97,7 @@ export const SpecialistOnboardingPage: React.FC = () => {
             });
             addToast('Профиль специалиста успешно создан!', 'success');
             navigate('/specialist-dashboard');
-        } catch (error) {
+        } catch (error: any) {
             addToast('Ошибка подтверждения или создания профиля.', 'error');
         }
     };
