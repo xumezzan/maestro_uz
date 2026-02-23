@@ -87,7 +87,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const token = localStorage.getItem('accessToken');
   const wsUrl = currentUser && token ? `${WS_BASE_URL}/chat/?token=${token}` : null;
 
-  const { sendJsonMessage, lastJsonMessage } = useWebSocket(wsUrl, {
+  const { sendJsonMessage, lastJsonMessage, readyState } = useWebSocket(wsUrl, {
     shouldReconnect: (closeEvent) => !!currentUser, // Reconnect automatically if user is logged in
     reconnectInterval: 3000,
   });
@@ -578,7 +578,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const receiverId = conversation.participantId;
 
       // Try WebSocket first
-      if (sendJsonMessage) {
+      if (sendJsonMessage && readyState === ReadyState.OPEN) {
         sendJsonMessage({
           type: 'chat_message',
           receiver_id: receiverId,
@@ -597,7 +597,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           id: m.id.toString(),
           senderId: currentUser.id,
           text: m.text,
-          timestamp: new Date(m.created_at).getTime(),
+          timestamp: m.created_at ? new Date(m.created_at).getTime() : Date.now(),
           isRead: false,
           mediaUrl: m.image,
           mediaType: m.image ? 'image' : undefined
