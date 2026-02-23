@@ -1,8 +1,10 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import useWebSocket, { ReadyState } from 'react-use-websocket';
 import { Task, TaskStatus, UserRole, ServiceCategory, UserProfile, Specialist, Conversation, Message, TaskResponse } from '../types';
 import { useToast } from './ToastContext';
 import api from '../services/api';
+
+type ChatConnectionStatus = 'connected' | 'connecting' | 'reconnecting' | 'disconnected';
 
 interface AppContextType {
   role: UserRole;
@@ -24,8 +26,9 @@ interface AppContextType {
   updateUser: (user: UserProfile) => void;
   toggleFavorite: (specialistId: string) => void;
   conversations: Conversation[];
-  sendMessage: (conversationId: string, text: string, media?: { url: string, type: 'image' }) => void;
-  startChat: (specialistId: string) => void;
+  chatConnectionStatus: ChatConnectionStatus;
+  sendMessage: (conversationId: string, text: string, media?: { url: string, type: 'image' }) => Promise<void>;
+  startChat: (participantId: string) => void;
   markAsRead: (conversationId: string) => void;
   specialists: Specialist[];
   forgotPassword: (email: string) => Promise<void>;
@@ -36,7 +39,6 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-const API_BASE_URL = '/api';
 const WS_BASE_URL = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}/ws`;
 
 // Tashkent Center Coordinates
@@ -61,6 +63,41 @@ const mapUserProfile = (userData: any): UserProfile => ({
   isAdmin: userData.is_staff || false,
 });
 
+const conversationLastTimestamp = (conversation: Conversation): number => {
+  const lastMessage = conversation.messages[conversation.messages.length - 1];
+  return lastMessage ? lastMessage.timestamp : 0;
+};
+
+const sortConversations = (conversationList: Conversation[]): Conversation[] =>
+  [...conversationList].sort((a, b) => conversationLastTimestamp(b) - conversationLastTimestamp(a));
+
+const sortMessages = (messages: Message[]): Message[] =>
+  [...messages].sort((a, b) => a.timestamp - b.timestamp);
+
+const getFallbackAvatar = (name: string): string =>
+  `https://ui-avatars.com/api/?name=${encodeURIComponent(name || 'User')}`;
+
+const dataUrlToFile = (dataUrl: string, filename = 'attachment.jpg'): File | null => {
+  try {
+    const [meta, content] = dataUrl.split(',');
+    if (!meta || !content) return null;
+
+    const mimeMatch = meta.match(/data:(.*?);base64/);
+    const mimeType = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+    const binary = atob(content);
+    const bytes = new Uint8Array(binary.length);
+
+    for (let i = 0; i < binary.length; i += 1) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+
+    return new File([bytes], filename, { type: mimeType });
+  } catch (error) {
+    console.error('Failed to decode file attachment', error);
+    return null;
+  }
+};
+
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { addToast } = useToast();
   const [isAuthLoading, setIsAuthLoading] = useState(true);
@@ -70,6 +107,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [specialists, setSpecialists] = useState<Specialist[]>([]);
+  const [hasSocketOpened, setHasSocketOpened] = useState(false);
 
   const mapTask = (t: any): Task => ({
     id: t.id.toString(),
@@ -85,6 +123,89 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     assignedSpecialist: t.assigned_specialist ? t.assigned_specialist.toString() : undefined
   });
 
+  const findSpecialistByUserId = useCallback((participantId: string) => {
+    return specialists.find((s) => s.userId === participantId || s.id === participantId);
+  }, [specialists]);
+
+  const upsertConversationMessage = useCallback((
+    previousConversations: Conversation[],
+    participantId: string,
+    message: Message,
+    fallbackParticipant?: { name?: string; avatar?: string }
+  ): Conversation[] => {
+    let conversationExists = false;
+
+    const updatedConversations = previousConversations.map((conversation) => {
+      if (conversation.participantId !== participantId) return conversation;
+      conversationExists = true;
+
+      if (conversation.messages.some((existingMessage) => existingMessage.id === message.id)) {
+        return conversation;
+      }
+
+      const mergedMessages = sortMessages([...conversation.messages, message]);
+      return { ...conversation, messages: mergedMessages };
+    });
+
+    if (!conversationExists) {
+      const participantName = fallbackParticipant?.name || 'Собеседник';
+      const participantAvatar = fallbackParticipant?.avatar || getFallbackAvatar(participantName);
+
+      updatedConversations.push({
+        id: `conv_${participantId}`,
+        participantId,
+        participantName,
+        participantAvatar,
+        messages: [message],
+      });
+    }
+
+    return sortConversations(updatedConversations);
+  }, []);
+
+  const buildConversationsFromMessages = useCallback((messageList: any[]): Conversation[] => {
+    const conversationsMap = new Map<string, Conversation>();
+
+    messageList.forEach((message) => {
+      const isMe = Boolean(message.is_me);
+      const senderId = message.sender?.toString();
+      const receiverId = message.receiver?.toString();
+      if (!senderId || !receiverId) return;
+
+      const participantId = isMe ? receiverId : senderId;
+      if (!conversationsMap.has(participantId)) {
+        const participantName = (isMe ? message.receiver_name : message.sender_name) || 'Собеседник';
+        const participantAvatar = (isMe ? message.receiver_avatar : message.sender_avatar) || getFallbackAvatar(participantName);
+
+        conversationsMap.set(participantId, {
+          id: `conv_${participantId}`,
+          participantId,
+          participantName,
+          participantAvatar,
+          messages: [],
+        });
+      }
+
+      const conversation = conversationsMap.get(participantId)!;
+      conversation.messages.push({
+        id: message.id.toString(),
+        senderId,
+        text: message.text || '',
+        timestamp: new Date(message.created_at).getTime(),
+        isRead: Boolean(message.is_read),
+        mediaUrl: message.image || undefined,
+        mediaType: message.image ? 'image' : undefined,
+      });
+    });
+
+    const preparedConversations = Array.from(conversationsMap.values()).map((conversation) => ({
+      ...conversation,
+      messages: sortMessages(conversation.messages),
+    }));
+
+    return sortConversations(preparedConversations);
+  }, []);
+
   // ── WebSocket Setup ──────────────────────────────────────────────────
   const token = localStorage.getItem('accessToken');
   const wsUrl = currentUser && token ? `${WS_BASE_URL}/chat/?token=${token}` : null;
@@ -94,56 +215,60 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     reconnectInterval: 3000,
   });
 
+  useEffect(() => {
+    if (!currentUser) {
+      setHasSocketOpened(false);
+      return;
+    }
+
+    if (readyState === ReadyState.OPEN) {
+      setHasSocketOpened(true);
+    }
+  }, [currentUser, readyState]);
+
+  const chatConnectionStatus: ChatConnectionStatus = (() => {
+    if (!currentUser) return 'disconnected';
+    if (readyState === ReadyState.OPEN) return 'connected';
+    if (readyState === ReadyState.CONNECTING) return hasSocketOpened ? 'reconnecting' : 'connecting';
+    if (readyState === ReadyState.CLOSING) return 'reconnecting';
+    return 'disconnected';
+  })();
+
   // Handle incoming real-time messages
   useEffect(() => {
-    if (lastJsonMessage !== null) {
-      const data = lastJsonMessage as any;
-      if (data.message) {
-        const m = data.message;
+    if (!lastJsonMessage || !currentUser) return;
 
-        // Check if message is from myself (received via websocket echo)
-        const isMe = currentUser?.id === m.sender_id.toString();
-        const participantId = isMe ? m.receiver_id.toString() : m.sender_id.toString();
+    const data = lastJsonMessage as any;
+    if (!data?.message) return;
 
-        const socketMessage: Message = {
-          id: m.id.toString(),
-          senderId: m.sender_id.toString(),
-          text: m.text,
-          timestamp: new Date(m.created_at).getTime(),
-          isRead: isMe, // Mark as read if I sent it
-        };
+    const incoming = data.message;
+    const senderId = incoming.sender_id?.toString();
+    const receiverId = incoming.receiver_id?.toString();
+    if (!senderId || !receiverId) return;
 
-        setConversations(prev => {
-          let exists = false;
-          const updated = prev.map(c => {
-            if (c.participantId === participantId) {
-              exists = true;
-              // Avoid duplicates (if we also fetched it via HTTP)
-              if (!c.messages.some(existingMsg => existingMsg.id === socketMessage.id)) {
-                return { ...c, messages: [...c.messages, socketMessage] };
-              }
-            }
-            return c;
-          });
+    const isMe = currentUser.id === senderId;
+    const participantId = isMe ? receiverId : senderId;
+    const matchedSpecialist = findSpecialistByUserId(participantId);
 
-          if (!exists) {
-            // New conversation started dynamically via socket
-            const newParticipantName = isMe ? "Пользователь" : "Новое сообщение"; // Ideally we'd fetch actual info
-            return [{
-              id: `conv_${participantId}`,
-              participantId,
-              participantName: isMe ? "Собеседник" : "Новое сообщение",
-              participantAvatar: `https://ui-avatars.com/api/?name=User`,
-              messages: [socketMessage]
-            }, ...updated];
-          }
-          return updated;
-        });
-      }
-    }
-  }, [lastJsonMessage, currentUser]);
+    const socketMessage: Message = {
+      id: incoming.id.toString(),
+      senderId,
+      text: incoming.text || '',
+      timestamp: new Date(incoming.created_at).getTime(),
+      isRead: isMe,
+      mediaUrl: incoming.image || undefined,
+      mediaType: incoming.image ? 'image' : undefined,
+    };
 
-  // ── Init auth + fetch data on mount ──────────────────────────────────
+    setConversations((previousConversations) =>
+      upsertConversationMessage(previousConversations, participantId, socketMessage, {
+        name: matchedSpecialist?.name || (isMe ? 'Собеседник' : 'Новое сообщение'),
+        avatar: matchedSpecialist?.avatarUrl,
+      })
+    );
+  }, [lastJsonMessage, currentUser, findSpecialistByUserId, upsertConversationMessage]);
+
+  // ── Init auth on mount ────────────────────────────────────────────────
   useEffect(() => {
     const initAuth = async () => {
       const currentToken = localStorage.getItem('accessToken');
@@ -164,107 +289,82 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setIsAuthLoading(false);
       }
     };
+
     initAuth();
+  }, []);
+
+  // ── Fetch marketplace data + private chat data ───────────────────────
+  useEffect(() => {
+    if (isAuthLoading) return;
 
     const fetchData = async () => {
       try {
-        // 1. Specialists
         const specRes = await api.get('/specialists/');
-        if (specRes.data) {
-          const specData = specRes.data;
-          if (Array.isArray(specData) && specData.length > 0) {
-            setSpecialists(specData.map((s: any) => {
-              const coords = getRandomCoords();
-              return {
-                id: s.id.toString(),
-                userId: s.user.toString(),
-                name: s.name || 'Без имени',
-                category: s.category as ServiceCategory,
-                rating: s.rating,
-                reviewsCount: s.reviews_count,
-                location: s.location,
-                priceStart: Number(s.price_start),
-                avatarUrl: s.avatarUrl || 'https://ui-avatars.com/api/?name=User',
-                description: s.description,
-                verified: s.is_verified,
-                tags: s.tags || [],
-                telegram: s.telegram,
-                instagram: s.instagram,
-                lat: s.lat || coords.lat,
-                lng: s.lng || coords.lng
-              };
-            }));
-          }
-        }
+        const specData = Array.isArray(specRes.data) ? specRes.data : [];
+        setSpecialists(specData.map((s: any) => {
+          const coords = getRandomCoords();
+          return {
+            id: s.id.toString(),
+            userId: s.user.toString(),
+            name: s.name || 'Без имени',
+            category: s.category as ServiceCategory,
+            rating: s.rating,
+            reviewsCount: s.reviews_count,
+            location: s.location,
+            priceStart: Number(s.price_start),
+            avatarUrl: s.avatarUrl || getFallbackAvatar(s.name || 'User'),
+            description: s.description,
+            verified: s.is_verified,
+            tags: s.tags || [],
+            telegram: s.telegram,
+            instagram: s.instagram,
+            lat: s.lat || coords.lat,
+            lng: s.lng || coords.lng,
+          };
+        }));
 
-        // 2. Tasks
         const taskRes = await api.get('/tasks/');
-        if (taskRes.data) {
-          const taskData = taskRes.data;
-          if (Array.isArray(taskData) && taskData.length > 0) {
-            const realTasks = taskData.map(mapTask);
-            setTasks(realTasks); // Actually set the tasks!
-          }
-        }
-
-        // 3. Responses
-        const resRes = await api.get('/responses/');
-        if (resRes.data) {
-          const resData = resRes.data;
-          if (Array.isArray(resData)) {
-            setTaskResponses(resData.map((r: any) => ({
-              id: r.id.toString(),
-              taskId: r.task.toString(),
-              specialistId: r.specialist.toString(),
-              specialistUserId: r.specialist_user_id.toString(),
-              specialistName: r.specialistName,
-              specialistAvatar: r.specialistAvatar,
-              specialistRating: r.specialistRating,
-              message: r.message,
-              price: Number(r.price),
-              createdAt: r.created_at
-            })));
-          }
-        }
-
-        // 4. Messages
-        const msgRes = await api.get('/messages/');
-        if (msgRes.data) {
-          const msgData = msgRes.data;
-          if (Array.isArray(msgData)) {
-            const convMap = new Map<string, Conversation>();
-            msgData.forEach((m: any) => {
-              const isMe = m.is_me;
-              const participantId = isMe ? m.receiver.toString() : m.sender.toString();
-              if (!convMap.has(participantId)) {
-                convMap.set(participantId, {
-                  id: `conv_${participantId}`,
-                  participantId: participantId,
-                  participantName: isMe ? m.receiver_name : m.sender_name,
-                  participantAvatar: isMe ? m.receiver_avatar : m.sender_avatar,
-                  messages: []
-                });
-              }
-              const conv = convMap.get(participantId)!;
-              conv.messages.push({
-                id: m.id.toString(),
-                senderId: m.sender.toString(),
-                text: m.text,
-                timestamp: new Date(m.created_at).getTime(),
-                isRead: m.is_read,
-                mediaUrl: m.image,
-                mediaType: m.image ? 'image' : undefined
-              });
-            });
-            setConversations(Array.from(convMap.values()));
-          }
-        }
+        const taskData = Array.isArray(taskRes.data) ? taskRes.data : [];
+        setTasks(taskData.map(mapTask));
       } catch (error) {
-        console.warn("Backend API not available, using mock data.");
+        console.warn("Public data fetch failed", error);
+      }
+
+      if (!currentUser) {
+        setTaskResponses([]);
+        setConversations([]);
+        return;
+      }
+
+      try {
+        const [responseRes, messageRes] = await Promise.all([
+          api.get('/responses/'),
+          api.get('/messages/'),
+        ]);
+
+        const responseData = Array.isArray(responseRes.data) ? responseRes.data : [];
+        setTaskResponses(responseData.map((r: any) => ({
+          id: r.id.toString(),
+          taskId: r.task.toString(),
+          specialistId: r.specialist.toString(),
+          specialistUserId: r.specialist_user_id.toString(),
+          specialistName: r.specialistName,
+          specialistAvatar: r.specialistAvatar,
+          specialistRating: r.specialistRating,
+          message: r.message,
+          price: Number(r.price),
+          createdAt: r.created_at,
+        })));
+
+        const messageData = Array.isArray(messageRes.data) ? messageRes.data : [];
+        setConversations(buildConversationsFromMessages(messageData));
+      } catch (error) {
+        console.warn("Private data fetch failed", error);
       }
     };
+
     fetchData();
-  }, []);
+  }, [isAuthLoading, currentUser?.id, buildConversationsFromMessages]);
 
   const switchRole = () => {
     setRole(prev => prev === UserRole.CLIENT ? UserRole.SPECIALIST : UserRole.CLIENT);
@@ -586,72 +686,124 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     try {
       const receiverId = conversation.participantId;
+      const trimmedText = text.trim();
+      const hasImage = Boolean(media?.url && media.type === 'image');
 
-      // Try WebSocket first
-      if (sendJsonMessage && readyState === ReadyState.OPEN) {
+      if (!trimmedText && !hasImage) return;
+
+      // Use WebSocket for lightweight text-only messages.
+      if (!hasImage && sendJsonMessage && readyState === ReadyState.OPEN) {
         sendJsonMessage({
           type: 'chat_message',
           receiver_id: receiverId,
-          text: text
+          text: trimmedText
         });
-        // Real-time echo will add message to UI
         return;
       }
 
-      // Fallback to HTTP POST if WebSocket not available
-      const res = await api.post('/messages/', { receiver: receiverId, text });
+      let res;
+      if (hasImage) {
+        const formData = new FormData();
+        formData.append('receiver', receiverId);
+        if (trimmedText) {
+          formData.append('text', trimmedText);
+        }
+
+        if (media?.url.startsWith('data:')) {
+          const imageFile = dataUrlToFile(media.url, `chat-${Date.now()}.jpg`);
+          if (imageFile) {
+            formData.append('image', imageFile);
+          }
+        } else if (media) {
+          formData.append('image', media.url);
+        }
+
+        res = await api.post('/messages/', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+      } else {
+        res = await api.post('/messages/', { receiver: receiverId, text: trimmedText });
+      }
 
       if (res.data) {
         const m = res.data;
         const newMessage: Message = {
           id: m.id.toString(),
-          senderId: currentUser.id,
-          text: m.text,
+          senderId: m.sender?.toString() || currentUser.id,
+          text: m.text || '',
           timestamp: m.created_at ? new Date(m.created_at).getTime() : Date.now(),
-          isRead: false,
-          mediaUrl: m.image,
+          isRead: true,
+          mediaUrl: m.image || undefined,
           mediaType: m.image ? 'image' : undefined
         };
 
-        setConversations(prev => prev.map(c => {
-          if (c.id === conversationId) {
-            return { ...c, messages: [...c.messages, newMessage] };
-          }
-          return c;
-        }));
+        setConversations((previousConversations) =>
+          upsertConversationMessage(previousConversations, receiverId, newMessage, {
+            name: conversation.participantName,
+            avatar: conversation.participantAvatar,
+          })
+        );
       }
     } catch (e) {
       console.error("Failed to send message", e);
+      addToast('Не удалось отправить сообщение', 'error');
     }
   };
 
-  const markAsRead = (conversationId: string) => {
-    setConversations(prev => prev.map(c =>
-      c.id === conversationId ? { ...c, messages: c.messages.map(m => ({ ...m, isRead: true })) } : c
-    ));
-  };
-
-  const startChat = (specialistId: string) => {
+  const markAsRead = useCallback((conversationId: string) => {
     if (!currentUser) return;
-    const existing = conversations.find(c => c.participantId === specialistId);
-    if (existing) return;
 
-    const specialist = specialists.find(s => s.id === specialistId);
-    const newConversation: Conversation = {
-      id: `conv_${specialistId}`,
-      participantId: specialistId,
-      participantName: specialist ? specialist.name : 'Специалист',
-      participantAvatar: specialist ? specialist.avatarUrl : '',
-      messages: []
-    };
-    setConversations(prev => [newConversation, ...prev]);
-  };
+    const activeConversation = conversations.find((conversation) => conversation.id === conversationId);
+    if (!activeConversation) return;
+
+    const unreadIncoming = activeConversation.messages.filter(
+      (message) => !message.isRead && message.senderId !== currentUser.id
+    );
+    if (unreadIncoming.length === 0) return;
+
+    setConversations((previousConversations) => previousConversations.map((conversation) => {
+      if (conversation.id !== conversationId) return conversation;
+      return {
+        ...conversation,
+        messages: conversation.messages.map((message) =>
+          unreadIncoming.some((unreadMessage) => unreadMessage.id === message.id)
+            ? { ...message, isRead: true }
+            : message
+        ),
+      };
+    }));
+
+    Promise.all(unreadIncoming.map((message) =>
+      api.patch(`/messages/${message.id}/`, { is_read: true }).catch(() => null)
+    )).catch(() => null);
+  }, [currentUser, conversations]);
+
+  const startChat = useCallback((participantId: string) => {
+    if (!currentUser) return;
+    setConversations((previousConversations) => {
+      const existing = previousConversations.find((conversation) => conversation.participantId === participantId);
+      if (existing) return previousConversations;
+
+      const specialist = findSpecialistByUserId(participantId);
+      const participantName = specialist?.name || 'Собеседник';
+      const participantAvatar = specialist?.avatarUrl || getFallbackAvatar(participantName);
+
+      return sortConversations([{
+        id: `conv_${participantId}`,
+        participantId,
+        participantName,
+        participantAvatar,
+        messages: [],
+      }, ...previousConversations]);
+    });
+  }, [currentUser, findSpecialistByUserId]);
 
   return (
     <AppContext.Provider value={{
       role, switchRole, tasks, taskResponses, addTask, addResponse, acceptResponse,
       deleteTask, currentUser, login, register, registerRequest, verifyEmail,
       registerSpecialist, logout, updateUser, toggleFavorite, conversations,
+      chatConnectionStatus,
       sendMessage, startChat, markAsRead, specialists,
       forgotPassword, resetPassword, resendVerification, updateProfile, isAuthLoading,
     }}>

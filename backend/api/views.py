@@ -6,6 +6,8 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.conf import settings
 from django.db.models import Q
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 from .models import SpecialistProfile, Task, TaskResponse, User, Message, Review
 from .serializers import SpecialistProfileSerializer, TaskSerializer, TaskResponseSerializer, MessageSerializer, ReviewSerializer
 
@@ -186,8 +188,34 @@ class MessageViewSet(viewsets.ModelViewSet):
         user = self.request.user
         return Message.objects.filter(Q(sender=user) | Q(receiver=user)).order_by('created_at')
 
+    def _broadcast_message(self, msg: Message):
+        """Push a saved message to both participants via personal WS groups."""
+        channel_layer = get_channel_layer()
+        if not channel_layer:
+            return
+
+        payload = {
+            'id': msg.id,
+            'sender_id': msg.sender_id,
+            'receiver_id': msg.receiver_id,
+            'task_id': msg.task_id,
+            'text': msg.text or '',
+            'image': msg.image.url if msg.image else None,
+            'created_at': msg.created_at.isoformat(),
+        }
+
+        async_to_sync(channel_layer.group_send)(
+            f"user_{msg.receiver_id}",
+            {'type': 'chat_message', 'message': payload}
+        )
+        async_to_sync(channel_layer.group_send)(
+            f"user_{msg.sender_id}",
+            {'type': 'chat_message', 'message': payload}
+        )
+
     def perform_create(self, serializer):
-        serializer.save(sender=self.request.user)
+        msg = serializer.save(sender=self.request.user)
+        self._broadcast_message(msg)
 
 
 class AIAnalyzeView(APIView):

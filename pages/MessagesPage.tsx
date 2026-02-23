@@ -6,7 +6,7 @@ import { Send, Search, ArrowLeft, MoreVertical, Phone, Video, Info, Paperclip, X
 import { useSearchParams, useNavigate } from 'react-router-dom';
 
 export const MessagesPage: React.FC = () => {
-    const { conversations, currentUser, sendMessage, markAsRead } = useAppContext();
+    const { conversations, currentUser, sendMessage, markAsRead, startChat, chatConnectionStatus } = useAppContext();
     const { t } = useLanguage();
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
@@ -14,6 +14,7 @@ export const MessagesPage: React.FC = () => {
     const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
     const [inputText, setInputText] = useState('');
     const [selectedFile, setSelectedFile] = useState<string | null>(null);
+    const [searchTerm, setSearchTerm] = useState('');
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -24,12 +25,28 @@ export const MessagesPage: React.FC = () => {
     useEffect(() => {
         const idParam = searchParams.get('id');
         const participantParam = searchParams.get('participantId');
-        if (idParam) setSelectedConversationId(idParam);
-        else if (participantParam) {
-            const conv = conversations.find(c => c.participantId === participantParam);
-            if (conv) setSelectedConversationId(conv.id);
+
+        if (idParam) {
+            if (conversations.some(c => c.id === idParam)) {
+                setSelectedConversationId(idParam);
+            }
+            return;
         }
-    }, [searchParams, conversations]);
+
+        if (participantParam) {
+            const conv = conversations.find(c => c.participantId === participantParam);
+            if (conv) {
+                setSelectedConversationId(conv.id);
+            } else if (currentUser) {
+                startChat(participantParam);
+            }
+            return;
+        }
+
+        if (!selectedConversationId && conversations.length > 0) {
+            setSelectedConversationId(conversations[0].id);
+        }
+    }, [searchParams, conversations, selectedConversationId, currentUser, startChat]);
 
     useEffect(() => {
         if (selectedConversationId && currentUser) {
@@ -49,7 +66,24 @@ export const MessagesPage: React.FC = () => {
 
     if (!currentUser) return null;
 
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+    const filteredConversations = normalizedSearch
+        ? conversations.filter(conv => {
+            const participant = conv.participantName.toLowerCase();
+            const lastMsg = conv.messages[conv.messages.length - 1];
+            const lastText = (lastMsg?.text || '').toLowerCase();
+            return participant.includes(normalizedSearch) || lastText.includes(normalizedSearch);
+        })
+        : conversations;
+
     const selectedConversation = conversations.find(c => c.id === selectedConversationId);
+
+    const connectionMeta = {
+        connected: { label: t('online') || 'онлайн', textClass: 'text-fiverr-green', dotClass: 'bg-fiverr-green' },
+        connecting: { label: 'подключение...', textClass: 'text-yellow-400', dotClass: 'bg-yellow-400' },
+        reconnecting: { label: 'переподключение...', textClass: 'text-yellow-400', dotClass: 'bg-yellow-400' },
+        disconnected: { label: 'не в сети', textClass: 'text-red-400', dotClass: 'bg-red-400' },
+    }[chatConnectionStatus];
 
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -88,6 +122,8 @@ export const MessagesPage: React.FC = () => {
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-fiverr-text-dim" />
                         <input
                             type="text"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
                             placeholder="Поиск..."
                             className="w-full pl-9 pr-4 py-2 rounded-lg bg-fiverr-card border border-fiverr-border text-heading text-sm outline-none focus:border-fiverr-green transition-colors placeholder-fiverr-text-dim"
                         />
@@ -95,12 +131,12 @@ export const MessagesPage: React.FC = () => {
                 </div>
 
                 <div className="flex-1 overflow-y-auto">
-                    {conversations.length === 0 ? (
+                    {filteredConversations.length === 0 ? (
                         <div className="p-8 text-center text-fiverr-text-dim">
-                            {t('noMessages') || 'Нет сообщений'}
+                            {normalizedSearch ? 'Ничего не найдено' : (t('noMessages') || 'Нет сообщений')}
                         </div>
                     ) : (
-                        conversations.map(conv => {
+                        filteredConversations.map(conv => {
                             const lastMsg = conv.messages[conv.messages.length - 1];
                             const isActive = conv.id === selectedConversationId;
                             const hasUnread = conv.messages.some(m => !m.isRead && m.senderId !== currentUser.id);
@@ -156,9 +192,9 @@ export const MessagesPage: React.FC = () => {
                                 <img src={selectedConversation.participantAvatar} alt="" className="w-10 h-10 rounded-full object-cover ring-2 ring-fiverr-border" />
                                 <div>
                                     <h2 className="font-bold text-heading leading-tight">{selectedConversation.participantName}</h2>
-                                    <span className="text-xs text-fiverr-green flex items-center gap-1">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-fiverr-green" />
-                                        {t('online') || 'онлайн'}
+                                    <span className={`text-xs flex items-center gap-1 ${connectionMeta.textClass}`}>
+                                        <span className={`w-1.5 h-1.5 rounded-full ${connectionMeta.dotClass}`} />
+                                        {connectionMeta.label}
                                     </span>
                                 </div>
                             </div>
