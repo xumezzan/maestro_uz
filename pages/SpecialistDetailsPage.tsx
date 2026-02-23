@@ -39,7 +39,7 @@ export const SpecialistDetailsPage: React.FC = () => {
     });
     const [submittingReview, setSubmittingReview] = useState(false);
 
-    const existingConversation = conversations.find(c => c.participantId === id);
+    const existingConversation = conversations.find(c => c.participantId === specialist?.userId);
     const [isSelected, setIsSelected] = useState(!!existingConversation);
 
     useEffect(() => {
@@ -99,10 +99,10 @@ export const SpecialistDetailsPage: React.FC = () => {
 
     const handleStartChat = () => {
         if (!currentUser) { navigate('/login'); return; }
-        startChat(specialist.id);
-        const existing = conversations.find(c => c.participantId === specialist.id);
+        startChat(specialist.userId);
+        const existing = conversations.find(c => c.participantId === specialist.userId);
         if (existing) navigate(`/messages?id=${existing.id}`);
-        else navigate(`/messages?participantId=${specialist.id}`);
+        else navigate(`/messages?participantId=${specialist.userId}`);
     };
 
 

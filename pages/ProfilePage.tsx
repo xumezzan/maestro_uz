@@ -376,7 +376,7 @@ export const ProfilePage: React.FC = () => {
                                                                                 </div>
                                                                                 <p className="text-fiverr-text-muted text-sm mt-1 mb-2 line-clamp-2">{response.message}</p>
                                                                                 <div className="flex gap-2">
-                                                                                    <button onClick={() => handleStartChatWithSpecialist(response.specialistId)}
+                                                                                    <button onClick={() => handleStartChatWithSpecialist(response.specialistUserId)}
                                                                                         className="text-xs bg-white/5 border border-fiverr-border text-fiverr-text-muted px-3 py-1.5 rounded-md hover:border-fiverr-green hover:text-fiverr-green transition-colors flex items-center gap-1 w-fit">
                                                                                         <MessageCircle className="w-3 h-3" /> {t('write')}
                                                                                     </button>

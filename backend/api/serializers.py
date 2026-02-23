@@ -109,7 +109,7 @@ class SpecialistProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = SpecialistProfile
-        fields = ['id', 'name', 'category', 'rating', 'reviews_count', 'location',
+        fields = ['id', 'user', 'name', 'category', 'rating', 'reviews_count', 'location',
                   'price_start', 'avatarUrl', 'description', 'is_verified', 'tags',
                   'passport_image', 'profile_image', 'telegram', 'instagram', 'balance']
 
@@ -118,12 +118,13 @@ class TaskResponseSerializer(serializers.ModelSerializer):
     specialistName = serializers.CharField(source='specialist.user.get_full_name', read_only=True)
     specialistAvatar = serializers.CharField(source='specialist.user.avatar_url', read_only=True)
     specialistRating = serializers.FloatField(source='specialist.rating', read_only=True)
+    specialist_user_id = serializers.ReadOnlyField(source='specialist.user.id')
 
     class Meta:
         model = TaskResponse
-        fields = ['id', 'task', 'specialist', 'specialistName', 'specialistAvatar',
+        fields = ['id', 'task', 'specialist', 'specialist_user_id', 'specialistName', 'specialistAvatar',
                   'specialistRating', 'message', 'price', 'created_at']
-        read_only_fields = ['specialist', 'specialistName', 'specialistAvatar', 'specialistRating']
+        read_only_fields = ['specialist', 'specialist_user_id', 'specialistName', 'specialistAvatar', 'specialistRating']
 
 
 class MessageSerializer(serializers.ModelSerializer):

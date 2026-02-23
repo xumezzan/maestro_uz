@@ -26,6 +26,7 @@ export enum TaskStatus {
 
 export interface Specialist {
   id: string;
+  userId: string;
   name: string;
   category: ServiceCategory;
   rating: number;
@@ -60,6 +61,7 @@ export interface TaskResponse {
   id: string;
   taskId: string;
   specialistId: string;
+  specialistUserId: string;
   specialistName: string;
   specialistAvatar: string;
   specialistRating: number;

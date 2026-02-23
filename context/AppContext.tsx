@@ -177,6 +177,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               const coords = getRandomCoords();
               return {
                 id: s.id.toString(),
+                userId: s.user.toString(),
                 name: s.name || 'Без имени',
                 category: s.category as ServiceCategory,
                 rating: s.rating,
@@ -215,6 +216,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               id: r.id.toString(),
               taskId: r.task.toString(),
               specialistId: r.specialist.toString(),
+              specialistUserId: r.specialist_user_id.toString(),
               specialistName: r.specialistName,
               specialistAvatar: r.specialistAvatar,
               specialistRating: r.specialistRating,
@@ -308,6 +310,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           id: r.id.toString(),
           taskId: r.task.toString(),
           specialistId: r.specialist.toString(),
+          specialistUserId: r.specialist_user_id.toString(),
           specialistName: currentUser.specialistProfile.name,
           specialistAvatar: currentUser.specialistProfile.avatarUrl,
           specialistRating: currentUser.specialistProfile.rating,
@@ -487,6 +490,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const newSpecialist: Specialist = {
       id: tempId,
+      userId: currentUser?.id || tempId, // Fallback if no user yet (though usually they are logged in)
       name: data.name || 'Новый Специалист',
       category: data.category || ServiceCategory.OTHER,
       rating: 5.0,
@@ -545,9 +549,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       if (response.data) {
         const savedSpec = response.data;
-        const realSpec = { ...newSpecialist, id: savedSpec.id.toString() };
+        const realSpec = { ...newSpecialist, id: savedSpec.id.toString(), userId: savedSpec.user.toString() };
         setSpecialists(prev => prev.map(s => s.id === tempId ? realSpec : s));
-        setCurrentUser({ ...newUser, id: savedSpec.id.toString(), specialistProfile: realSpec });
+        setCurrentUser({ ...newUser, id: savedSpec.user.toString(), specialistProfile: realSpec });
       }
     } catch (e) {
       console.error("Failed to register specialist", e);
