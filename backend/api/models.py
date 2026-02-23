@@ -125,9 +125,9 @@ class Task(models.Model):
     title = models.CharField(max_length=255)
     description = models.TextField()
     category = models.CharField(max_length=50, choices=ServiceCategory.choices)
-    budget = models.CharField(max_length=100)  # e.g. "100 000 UZS"
-    location = models.CharField(max_length=255)
-    date_info = models.CharField(max_length=100)  # e.g. "Завтра в 14:00"
+    budget = models.CharField(max_length=100, blank=True)  # e.g. "100 000 UZS"
+    location = models.CharField(max_length=255, blank=True)
+    date_info = models.CharField(max_length=100, blank=True)  # e.g. "Завтра в 14:00"
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.OPEN)
     created_at = models.DateTimeField(auto_now_add=True)
 
