@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Search, Star, ArrowRight, Wrench, BookOpen, Palette, Monitor, Truck, Shield, HeartHandshake, UserCheck,
-  Zap, ChevronRight, Play, TrendingUp, Award, Clock, Users, CheckCircle2
+  Zap, ChevronRight, Play, TrendingUp, Award, Clock, Users, CheckCircle2, X
 } from 'lucide-react';
 import { HERO_CARDS, POPULAR_REQUESTS } from '../constants';
 import { useLanguage } from '../context/LanguageContext';
@@ -12,6 +12,7 @@ import { UserRole } from '../types';
 
 export const HomePage: React.FC = () => {
   const [query, setQuery] = useState('');
+  const [showAboutModal, setShowAboutModal] = useState(false);
   const navigate = useNavigate();
   const { t } = useLanguage();
   const { addToast } = useToast();
@@ -307,7 +308,7 @@ export const HomePage: React.FC = () => {
             <div>
               <h4 className="font-bold text-heading mb-4 text-sm uppercase tracking-wider">{t('aboutService') || 'О сервисе'}</h4>
               <div className="space-y-2 text-left flex flex-col items-start">
-                <button onClick={handleComingSoon} className="block text-sm text-fiverr-text-muted hover:text-fiverr-green transition-colors text-left">{t('aboutService') || 'О сервисе'}</button>
+                <button onClick={() => setShowAboutModal(true)} className="block text-sm text-fiverr-text-muted hover:text-fiverr-green transition-colors text-left">{t('aboutService') || 'О сервисе'}</button>
                 <button onClick={handleComingSoon} className="block text-sm text-fiverr-text-muted hover:text-fiverr-green transition-colors text-left">{t('help') || 'Помощь'}</button>
                 <button onClick={handleComingSoon} className="block text-sm text-fiverr-text-muted hover:text-fiverr-green transition-colors text-left">{t('rules') || 'Правила'}</button>
               </div>
@@ -331,6 +332,68 @@ export const HomePage: React.FC = () => {
           </div>
         </div>
       </footer>
+
+      {/* About Modal */}
+      {showAboutModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setShowAboutModal(false)}>
+          <div className="fiverr-card w-full max-w-2xl overflow-hidden shadow-2xl relative" onClick={e => e.stopPropagation()}>
+            {/* Modal Header */}
+            <div className="p-6 border-b border-fiverr-border flex justify-between items-center bg-fiverr-card/50">
+              <h3 className="text-2xl font-black text-heading flex items-center gap-2">
+                maestro<span className="text-fiverr-green">.</span>
+              </h3>
+              <button onClick={() => setShowAboutModal(false)} className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-fiverr-text-muted hover:text-heading hover:bg-white/10 transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            {/* Modal Body */}
+            <div className="p-6 md:p-8 space-y-6">
+              <div>
+                <h4 className="text-lg font-bold text-heading mb-2 text-fiverr-green">О проекте</h4>
+                <p className="text-fiverr-text-muted leading-relaxed">
+                  <strong>Maestro</strong> — это современная платформа для поиска проверенных специалистов и фрилансеров в Узбекистане. Мы создали удобное пространство, где клиенты могут легко найти мастера для любой задачи, а профессионалы — стабильный поток заказов.
+                </p>
+              </div>
+
+              <div>
+                <h4 className="text-lg font-bold text-heading mb-2 text-fiverr-green">Чем мы занимаемся?</h4>
+                <p className="text-fiverr-text-muted leading-relaxed">
+                  Мы соединяем людей. Будь то ремонт квартиры, изучение английского языка, настройка компьютера или организация праздника — на Maestro собраны тысячи анкет специалистов разных направлений. Система отзывов, рейтингов и прозрачные цены помогают сделать правильный выбор.
+                </p>
+              </div>
+
+              <div>
+                <h4 className="text-lg font-bold text-heading mb-2 text-fiverr-green">Для кого этот сервис?</h4>
+                <div className="flex flex-col md:flex-row gap-6 mt-4">
+                  <div className="flex-1 bg-white/5 border border-white/10 p-5 rounded-2xl">
+                    <div className="w-10 h-10 rounded-xl bg-fiverr-green/20 flex items-center justify-center text-fiverr-green mb-3">
+                      <Users className="w-5 h-5" />
+                    </div>
+                    <h5 className="font-bold text-heading mb-2">Для клиентов</h5>
+                    <p className="text-sm text-fiverr-text-muted">Для тех, кто ценит свое время. Быстрый поиск, реальные отзывы и безопасный выбор лучшего исполнителя для любой бытовой или бизнес-задачи.</p>
+                  </div>
+                  <div className="flex-1 bg-white/5 border border-white/10 p-5 rounded-2xl">
+                    <div className="w-10 h-10 rounded-xl bg-fiverr-blue/20 flex items-center justify-center text-fiverr-blue mb-3">
+                      <Award className="w-5 h-5" />
+                    </div>
+                    <h5 className="font-bold text-heading mb-2">Для специалистов</h5>
+                    <p className="text-sm text-fiverr-text-muted">Для профессионалов своего дела. Удобный инструмент для поиска клиентов, создания репутации и увеличения собственного дохода.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            {/* Modal Footer */}
+            <div className="p-6 border-t border-fiverr-border bg-fiverr-card/50 flex justify-end">
+              <button
+                onClick={() => setShowAboutModal(false)}
+                className="fiverr-btn fiverr-btn-primary px-8 py-2.5"
+              >
+                Понятно
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
