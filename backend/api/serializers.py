@@ -34,7 +34,10 @@ class RegisterSerializer(serializers.ModelSerializer):
         return attrs
 
     def validate_email(self, value):
-        if User.objects.filter(email=value).exists():
+        qs = User.objects.filter(email=value)
+        if self.instance:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
             raise serializers.ValidationError("Пользователь с таким email уже существует.")
         return value
 
@@ -52,6 +55,19 @@ class RegisterSerializer(serializers.ModelSerializer):
             is_active=False  # Must verify email first
         )
         return user
+
+    def update(self, instance, validated_data):
+        validated_data.pop('password_confirm', None)
+        password = validated_data.pop('password', None)
+        
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+            
+        if password:
+            instance.set_password(password)
+            
+        instance.save()
+        return instance
 
 
 class LoginSerializer(serializers.Serializer):

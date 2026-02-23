@@ -61,8 +61,18 @@ export const SpecialistOnboardingPage: React.FC = () => {
             });
             addToast('Код подтверждения отправлен на почту!', 'success');
             setStep(4); // Move to OTP step
-        } catch (error) {
-            addToast('Ошибка при отправке кода.', 'error');
+        } catch (error: any) {
+            let errorMsg = 'Ошибка при отправке кода.';
+            if (error.response?.data) {
+                // Extract first error message from dict if exists
+                const values = Object.values(error.response.data);
+                if (values.length > 0 && Array.isArray(values[0])) {
+                    errorMsg = values[0][0] as string;
+                } else if (typeof values[0] === 'string') {
+                    errorMsg = values[0];
+                }
+            }
+            addToast(errorMsg, 'error');
         }
     };
 

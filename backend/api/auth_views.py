@@ -65,9 +65,27 @@ class RegisterView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
-        serializer = RegisterSerializer(data=request.data)
+        email = request.data.get('email')
+        user_instance = None
+        
+        if email:
+            try:
+                existing_user = User.objects.get(email=email)
+                if not existing_user.is_active:
+                    user_instance = existing_user
+            except User.DoesNotExist:
+                pass
+
+        if user_instance:
+            serializer = RegisterSerializer(user_instance, data=request.data)
+        else:
+            serializer = RegisterSerializer(data=request.data)
+            
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
+
+        # Delete any old OTPs for this user
+        EmailVerification.objects.filter(user=user).delete()
 
         # Generate OTP and save
         otp_code = generate_otp()
