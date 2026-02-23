@@ -1,6 +1,6 @@
 import React from 'react';
 import { HashRouter, Routes, Route } from 'react-router-dom';
-import { AppProvider } from './context/AppContext';
+import { AppProvider, useAppContext } from './context/AppContext';
 import { LanguageProvider } from './context/LanguageContext';
 import { ToastProvider } from './context/ToastContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
@@ -24,6 +24,15 @@ import { AdminDashboard } from './pages/AdminDashboard';
 
 const AppContent: React.FC = () => {
   const { isDark } = useTheme();
+  const { isAuthLoading } = useAppContext();
+
+  if (isAuthLoading) {
+    return (
+      <div className={`min-h-screen page-bg flex items-center justify-center transition-colors duration-300 ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-fiverr-green"></div>
+      </div>
+    );
+  }
 
   return (
     <HashRouter>

@@ -6,6 +6,7 @@ import api from '../services/api';
 
 interface AppContextType {
   role: UserRole;
+  isAuthLoading: boolean;
   switchRole: () => void;
   tasks: Task[];
   taskResponses: TaskResponse[];
@@ -62,6 +63,7 @@ const mapUserProfile = (userData: any): UserProfile => ({
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { addToast } = useToast();
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [role, setRole] = useState<UserRole>(UserRole.CLIENT);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [taskResponses, setTaskResponses] = useState<TaskResponse[]>([]);
@@ -155,7 +157,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           console.error("Auth check failed", e);
           localStorage.removeItem('accessToken');
           localStorage.removeItem('refreshToken');
+        } finally {
+          setIsAuthLoading(false);
         }
+      } else {
+        setIsAuthLoading(false);
       }
     };
     initAuth();
@@ -643,7 +649,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       deleteTask, currentUser, login, register, registerRequest, verifyEmail,
       registerSpecialist, logout, updateUser, toggleFavorite, conversations,
       sendMessage, startChat, markAsRead, specialists,
-      forgotPassword, resetPassword, resendVerification, updateProfile,
+      forgotPassword, resetPassword, resendVerification, updateProfile, isAuthLoading,
     }}>
       {children}
     </AppContext.Provider>
