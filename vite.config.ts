@@ -8,6 +8,9 @@ export default defineConfig(({ mode }) => {
   // Set the third parameter to '' to load all env regardless of the `VITE_` prefix.
   const env = loadEnv(mode, cwd(), '');
   
+  const apiProxyTarget = env.VITE_API_PROXY_TARGET || 'http://127.0.0.1';
+  const wsProxyTarget = env.VITE_WS_PROXY_TARGET || apiProxyTarget;
+
   return {
     plugins: [react()],
     define: {
@@ -17,9 +20,15 @@ export default defineConfig(({ mode }) => {
     server: {
       proxy: {
         '/api': {
-          target: 'http://127.0.0.1:8000',
+          target: apiProxyTarget,
           changeOrigin: true,
           secure: false,
+        },
+        '/ws': {
+          target: wsProxyTarget,
+          changeOrigin: true,
+          secure: false,
+          ws: true,
         },
       },
     },
