@@ -43,6 +43,17 @@ def specialist_user(db):
 
 
 @pytest.fixture
+def inactive_user(db):
+    return User.objects.create_user(
+        username='inactive_login_user',
+        email='inactive_login@test.com',
+        password='password123',
+        role='CLIENT',
+        is_active=False,
+    )
+
+
+@pytest.fixture
 def task(db, client_user):
     return Task.objects.create(
         client=client_user,
@@ -90,6 +101,45 @@ def test_auth_login_rate_limited(api_client, monkeypatch):
     assert r1.status_code == 401
     assert r2.status_code == 401
     assert r3.status_code == 429
+
+
+@pytest.mark.django_db
+def test_auth_login_auto_activates_inactive_user_in_debug(api_client, inactive_user):
+    with override_settings(DEBUG=True, ALLOW_DEBUG_INACTIVE_LOGIN=True):
+        response = api_client.post('/api/auth/login/', {
+            'email': inactive_user.email,
+            'password': 'password123',
+        }, format='json')
+
+    inactive_user.refresh_from_db()
+    assert response.status_code == 200
+    assert inactive_user.is_active is True
+
+
+@pytest.mark.django_db
+def test_auth_login_blocks_inactive_user_when_bypass_disabled(api_client, inactive_user):
+    with override_settings(DEBUG=True, ALLOW_DEBUG_INACTIVE_LOGIN=False):
+        response = api_client.post('/api/auth/login/', {
+            'email': inactive_user.email,
+            'password': 'password123',
+        }, format='json')
+
+    inactive_user.refresh_from_db()
+    assert response.status_code == 403
+    assert inactive_user.is_active is False
+
+
+@pytest.mark.django_db
+def test_auth_login_blocks_inactive_user_in_production_mode(api_client, inactive_user):
+    with override_settings(DEBUG=False, ALLOW_DEBUG_INACTIVE_LOGIN=True):
+        response = api_client.post('/api/auth/login/', {
+            'email': inactive_user.email,
+            'password': 'password123',
+        }, format='json')
+
+    inactive_user.refresh_from_db()
+    assert response.status_code == 403
+    assert inactive_user.is_active is False
 
 
 @pytest.mark.django_db

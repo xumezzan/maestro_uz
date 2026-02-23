@@ -19,6 +19,7 @@ for candidate in (PROJECT_ROOT / '.env', BASE_DIR / '.env'):
 SECRET_KEY = env('DJANGO_SECRET_KEY', default='django-insecure-change-me-in-production')
 
 DEBUG = env.bool('DEBUG', default=True)
+ALLOW_DEBUG_INACTIVE_LOGIN = env.bool('ALLOW_DEBUG_INACTIVE_LOGIN', default=DEBUG)
 
 if DEBUG:
     ALLOWED_HOSTS = env.list(

@@ -257,10 +257,21 @@ class LoginView(APIView):
             )
 
         if not user_obj.is_active:
-            return Response(
-                {"error": "Email не подтверждён. Проверьте почту."},
-                status=status.HTTP_403_FORBIDDEN,
+            allow_debug_inactive_login = (
+                settings.DEBUG and getattr(settings, 'ALLOW_DEBUG_INACTIVE_LOGIN', True)
             )
+            if allow_debug_inactive_login:
+                user_obj.is_active = True
+                user_obj.save(update_fields=['is_active'])
+                logger.warning(
+                    "Auto-activating inactive user %s in DEBUG mode for local login flow.",
+                    user_obj.email,
+                )
+            else:
+                return Response(
+                    {"error": "Email не подтверждён. Проверьте почту."},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
 
         user = authenticate(request, username=user_obj.username, password=password)
 
