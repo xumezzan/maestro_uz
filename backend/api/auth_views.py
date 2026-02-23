@@ -9,6 +9,7 @@ from django.utils import timezone
 from rest_framework import status, permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.throttling import ScopedRateThrottle
 
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenRefreshView
@@ -23,21 +24,6 @@ from .serializers import (
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
-
-# ---------------------------------------------------------------------------
-# Rate-limit helpers (uses django-ratelimit)
-# We apply rate limits via decorators on the dispatch method.
-# ---------------------------------------------------------------------------
-try:
-    from django_ratelimit.decorators import ratelimit
-    HAS_RATELIMIT = True
-except ImportError:
-    HAS_RATELIMIT = False
-    # Fallback no-op decorator if django-ratelimit not installed
-    def ratelimit(*args, **kwargs):
-        def decorator(fn):
-            return fn
-        return decorator
 
 
 def generate_otp():
@@ -63,6 +49,8 @@ class RegisterView(APIView):
     Creates inactive user, sends 6-digit OTP to email.
     """
     permission_classes = [permissions.AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'auth_register'
 
     def post(self, request):
         email = request.data.get('email')
@@ -133,6 +121,8 @@ class VerifyEmailView(APIView):
     Returns access + refresh tokens.
     """
     permission_classes = [permissions.AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'auth_verify_email'
 
     def post(self, request):
         email = request.data.get('email')
@@ -190,6 +180,8 @@ class ResendVerificationView(APIView):
     Re-sends OTP for email verification. Rate limited.
     """
     permission_classes = [permissions.AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'auth_resend_verification'
 
     def post(self, request):
         email = request.data.get('email')
@@ -245,6 +237,8 @@ class LoginView(APIView):
     Only works if user is active (email verified).
     """
     permission_classes = [permissions.AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'auth_login'
 
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
@@ -294,7 +288,8 @@ class CustomTokenRefreshView(TokenRefreshView):
     Returns new access token (+ new refresh token due to rotation).
     Old refresh token is blacklisted automatically.
     """
-    pass
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'auth_refresh'
 
 
 # ============================================================================
@@ -340,6 +335,8 @@ class ForgotPasswordView(APIView):
     Sends reset link with UUID token if user exists.
     """
     permission_classes = [permissions.AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'auth_forgot_password'
 
     def post(self, request):
         serializer = ForgotPasswordSerializer(data=request.data)
@@ -391,6 +388,8 @@ class ResetPasswordView(APIView):
     Validates token, sets new password.
     """
     permission_classes = [permissions.AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'auth_reset_password'
 
     def post(self, request):
         serializer = ResetPasswordSerializer(data=request.data)

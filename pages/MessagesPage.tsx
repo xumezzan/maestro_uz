@@ -267,6 +267,7 @@ export const MessagesPage: React.FC = () => {
                                         type="text"
                                         value={inputText}
                                         onChange={(e) => setInputText(e.target.value)}
+                                        data-testid="chat-input"
                                         placeholder={t('typeMessage') || 'Написать сообщение...'}
                                         className="flex-1 bg-transparent border-none outline-none text-heading placeholder-fiverr-text-dim"
                                     />
@@ -274,6 +275,7 @@ export const MessagesPage: React.FC = () => {
                                 <button
                                     type="submit"
                                     disabled={!inputText.trim() && !selectedFile}
+                                    data-testid="chat-send"
                                     className="p-3 bg-fiverr-green hover:bg-fiverr-green-dark text-white rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                                 >
                                     <Send className="w-5 h-5" />

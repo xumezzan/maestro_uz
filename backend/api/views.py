@@ -1,18 +1,24 @@
 import os
 import json
+import logging
 from rest_framework import viewsets, status, permissions, serializers
 from rest_framework.decorators import action
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.exceptions import PermissionDenied
+from rest_framework.throttling import ScopedRateThrottle
 from django.conf import settings
 from django.db.models import Q
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from .models import SpecialistProfile, Task, TaskResponse, User, Message, Review
 from .serializers import SpecialistProfileSerializer, TaskSerializer, TaskResponseSerializer, MessageSerializer, ReviewSerializer
+from .permissions import IsSpecialistProfileOwnerOrAdmin, IsTaskOwnerOrAdmin
+from .chat_rules import is_task_chat_pair_allowed
 
 # Configure Gemini API Key (used by AIAnalyzeView and GenerateDescriptionView)
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+logger = logging.getLogger(__name__)
 
 class AdminSpecialistViewSet(viewsets.ReadOnlyModelViewSet):
     """
@@ -48,9 +54,18 @@ class SpecialistViewSet(viewsets.ModelViewSet):
     serializer_class = SpecialistProfileSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
+    def get_permissions(self):
+        if self.action in ['create', 'my_stats']:
+            return [permissions.IsAuthenticated()]
+        if self.action in ['update', 'partial_update', 'destroy']:
+            return [permissions.IsAuthenticated(), IsSpecialistProfileOwnerOrAdmin()]
+        return [permissions.AllowAny()]
+
     def perform_create(self, serializer):
         if hasattr(self.request.user, 'specialist_profile'):
-            return
+            raise serializers.ValidationError("Профиль специалиста уже создан.")
+        if self.request.user.role != User.Role.SPECIALIST:
+            raise serializers.ValidationError("Только специалисты могут создать профиль специалиста.")
         serializer.save(user=self.request.user)
 
     @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated], url_path='my-stats')
@@ -107,13 +122,23 @@ class TaskViewSet(viewsets.ModelViewSet):
     serializer_class = TaskSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
+    def get_permissions(self):
+        if self.action == 'create':
+            return [permissions.IsAuthenticated()]
+        if self.action in ['update', 'partial_update', 'destroy']:
+            return [permissions.IsAuthenticated(), IsTaskOwnerOrAdmin()]
+        return [permissions.AllowAny()]
+
     def perform_create(self, serializer):
+        if self.request.user.role != User.Role.CLIENT:
+            raise serializers.ValidationError("Только заказчики могут создавать задания.")
         serializer.save(client=self.request.user)
 
 
 class TaskResponseViewSet(viewsets.ModelViewSet):
     serializer_class = TaskResponseSerializer
     permission_classes = [permissions.IsAuthenticated]
+    http_method_names = ['get', 'post', 'head', 'options']
 
     def get_queryset(self):
         user = self.request.user
@@ -129,8 +154,16 @@ class TaskResponseViewSet(viewsets.ModelViewSet):
         # Create response as the current specialist
         if not hasattr(self.request.user, 'specialist_profile'):
              raise serializers.ValidationError("Only specialists can respond to tasks.")
-             
+
         specialist = self.request.user.specialist_profile
+        task = serializer.validated_data.get('task')
+
+        if task.client_id == self.request.user.id:
+            raise serializers.ValidationError("Нельзя откликаться на собственное задание.")
+        if task.status != Task.Status.OPEN:
+            raise serializers.ValidationError("Можно откликаться только на открытые задания.")
+        if TaskResponse.objects.filter(task=task, specialist=specialist).exists():
+            raise serializers.ValidationError("Вы уже откликались на это задание.")
         
         # Free vs Paid business logic logic goes here
         RESPONSE_FEE = 5000 # 5,000 UZS
@@ -182,11 +215,18 @@ class TaskResponseViewSet(viewsets.ModelViewSet):
 class MessageViewSet(viewsets.ModelViewSet):
     serializer_class = MessageSerializer
     permission_classes = [permissions.IsAuthenticated]
+    http_method_names = ['get', 'post', 'patch', 'head', 'options']
 
     def get_queryset(self):
         # User sees messages sent BY them or TO them
         user = self.request.user
         return Message.objects.filter(Q(sender=user) | Q(receiver=user)).order_by('created_at')
+
+    def get_throttles(self):
+        if self.action == 'create':
+            self.throttle_scope = 'chat_http_send'
+            return [ScopedRateThrottle()]
+        return []
 
     def _broadcast_message(self, msg: Message):
         """Push a saved message to both participants via personal WS groups."""
@@ -204,18 +244,50 @@ class MessageViewSet(viewsets.ModelViewSet):
             'created_at': msg.created_at.isoformat(),
         }
 
-        async_to_sync(channel_layer.group_send)(
-            f"user_{msg.receiver_id}",
-            {'type': 'chat_message', 'message': payload}
-        )
-        async_to_sync(channel_layer.group_send)(
-            f"user_{msg.sender_id}",
-            {'type': 'chat_message', 'message': payload}
-        )
+        try:
+            async_to_sync(channel_layer.group_send)(
+                f"user_{msg.receiver_id}",
+                {'type': 'chat_message', 'message': payload}
+            )
+            async_to_sync(channel_layer.group_send)(
+                f"user_{msg.sender_id}",
+                {'type': 'chat_message', 'message': payload}
+            )
+        except Exception:
+            logger.exception("Failed to broadcast chat message %s", msg.id)
 
     def perform_create(self, serializer):
+        receiver = serializer.validated_data.get('receiver')
+        task = serializer.validated_data.get('task')
+        text = (serializer.validated_data.get('text') or '').strip()
+        image = serializer.validated_data.get('image')
+
+        if not receiver:
+            raise serializers.ValidationError("Получатель обязателен.")
+        if receiver.id == self.request.user.id:
+            raise serializers.ValidationError("Нельзя отправлять сообщение самому себе.")
+        if not text and not image:
+            raise serializers.ValidationError("Сообщение должно содержать текст или изображение.")
+        if task and not is_task_chat_pair_allowed(task, self.request.user.id, receiver.id):
+            raise serializers.ValidationError(
+                "Для этого задания чат доступен только между заказчиком и откликнувшимся специалистом."
+            )
+
         msg = serializer.save(sender=self.request.user)
         self._broadcast_message(msg)
+
+    def perform_update(self, serializer):
+        msg = self.get_object()
+
+        if msg.receiver_id != self.request.user.id and not self.request.user.is_staff:
+            raise PermissionDenied("Только получатель может изменять статус прочтения.")
+
+        allowed_fields = {'is_read'}
+        updated_fields = set(serializer.validated_data.keys())
+        if not updated_fields.issubset(allowed_fields):
+            raise serializers.ValidationError("Можно обновлять только поле is_read.")
+
+        serializer.save()
 
 
 class AIAnalyzeView(APIView):

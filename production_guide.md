@@ -131,3 +131,20 @@ We have set up a GitHub Action `.github/workflows/deploy.yml` that automatically
 - It pulls the latest code (`git pull`).
 - It rebuilds the Docker containers (`docker compose up --build -d`).
 - It runs database migrations automatically.
+
+## 8. Launch Checklist (First Real Users)
+Before public launch, verify:
+
+1. `DEBUG=0` in `.env`.
+2. `DJANGO_SECRET_KEY` is unique and not a placeholder.
+3. `ALLOWED_HOSTS` contains only your real domains (no `*`).
+4. `CORS_ALLOW_ALL_ORIGINS=False`, and `CORS_ALLOWED_ORIGINS`/`CSRF_TRUSTED_ORIGINS` are set.
+5. SMTP settings are valid (password reset and verification emails work).
+6. Redis is reachable (`REDIS_URL`) and cache is enabled (`USE_REDIS_CACHE=True`).
+7. Run preflight:
+   ```bash
+   docker compose exec -T backend python manage.py preflight_check --require-production
+   ```
+8. Health checks are green:
+   - `GET /api/health/live/`
+   - `GET /api/health/ready/`

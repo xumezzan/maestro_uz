@@ -86,6 +86,7 @@ export const LoginPage: React.FC = () => {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                data-testid="login-email"
                 className="fiverr-input"
                 placeholder={role === UserRole.CLIENT ? "client@example.com" : "master@example.com"}
               />
@@ -106,6 +107,7 @@ export const LoginPage: React.FC = () => {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  data-testid="login-password"
                   className="fiverr-input pr-12"
                   placeholder="••••••••"
                 />
@@ -122,6 +124,7 @@ export const LoginPage: React.FC = () => {
             <button
               type="submit"
               disabled={loading}
+              data-testid="login-submit"
               className="w-full fiverr-btn fiverr-btn-primary py-3.5 text-base mt-2 disabled:opacity-50"
             >
               {loading ? 'Вход...' : 'Войти'}

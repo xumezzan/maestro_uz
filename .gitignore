@@ -32,3 +32,5 @@ backend/venv/
 .env.local
 db.sqlite3
 media/
+playwright-report/
+test-results/

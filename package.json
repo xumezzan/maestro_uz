@@ -6,7 +6,10 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:e2e": "npx -y @playwright/test@1.53.0 test -c e2e/playwright.config.mjs",
+    "test:e2e:headed": "npx -y @playwright/test@1.53.0 test -c e2e/playwright.config.mjs --headed",
+    "test:e2e:install": "npx -y @playwright/test@1.53.0 install --with-deps chromium"
   },
   "dependencies": {
     "@google/genai": "^0.2.0",

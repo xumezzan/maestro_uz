@@ -6,6 +6,7 @@ from .auth_views import (
     LoginView, LogoutView, ForgotPasswordView, ResetPasswordView,
     MeView, CustomTokenRefreshView,
 )
+from .health_views import HealthLiveView, HealthReadyView
 
 router = DefaultRouter()
 router.register(r'specialists', SpecialistViewSet)
@@ -17,6 +18,8 @@ router.register(r'reviews', ReviewViewSet, basename='review')
 
 urlpatterns = [
     path('', include(router.urls)),
+    path('health/live/', HealthLiveView.as_view(), name='health-live'),
+    path('health/ready/', HealthReadyView.as_view(), name='health-ready'),
     path('ai/analyze/', AIAnalyzeView.as_view(), name='ai-analyze'),
     path('ai/generate-description/', GenerateDescriptionView.as_view(), name='ai-generate-description'),
     # === Auth endpoints ===
