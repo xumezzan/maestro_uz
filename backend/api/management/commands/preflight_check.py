@@ -30,12 +30,24 @@ class Command(BaseCommand):
             errors.append("DEBUG is enabled but --require-production was requested.")
 
         if settings.SECRET_KEY in DEFAULT_WEAK_SECRETS:
-            errors.append("DJANGO_SECRET_KEY is using a known placeholder value.")
+            msg = "DJANGO_SECRET_KEY is using a known placeholder value."
+            if require_production:
+                errors.append(msg)
+            else:
+                warnings.append(msg)
 
         if not settings.ALLOWED_HOSTS:
-            errors.append("ALLOWED_HOSTS is empty.")
+            msg = "ALLOWED_HOSTS is empty."
+            if require_production:
+                errors.append(msg)
+            else:
+                warnings.append(msg)
         elif "*" in settings.ALLOWED_HOSTS:
-            errors.append("ALLOWED_HOSTS contains '*'.")
+            msg = "ALLOWED_HOSTS contains '*'."
+            if require_production:
+                errors.append(msg)
+            else:
+                warnings.append(msg)
 
         if getattr(settings, "CORS_ALLOW_ALL_ORIGINS", False):
             warnings.append("CORS_ALLOW_ALL_ORIGINS=True (unsafe for public launch).")
