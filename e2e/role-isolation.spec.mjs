@@ -94,22 +94,22 @@ test('roles stay isolated across two tabs and chat works both ways', async ({ br
   const clientMessageText = 'Client -> Specialist (E2E)';
   await clientTab.getByTestId('chat-input').fill(clientMessageText);
   await clientTab.getByTestId('chat-send').click();
-  await expect(clientTab.getByText(clientMessageText)).toBeVisible();
+  await expect(clientTab.getByText(clientMessageText, { exact: true }).first()).toBeVisible();
 
   // Server may not broadcast in environments without Redis; reload to verify persisted chat history.
   await specialistTab.goto(`/#/messages?participantId=${clientMe.data.id}`);
   await specialistTab.reload();
   await specialistTab.goto(`/#/messages?participantId=${clientMe.data.id}`);
-  await expect(specialistTab.getByText(clientMessageText)).toBeVisible();
+  await expect(specialistTab.getByText(clientMessageText, { exact: true }).first()).toBeVisible();
 
   const specialistMessageText = 'Specialist -> Client (E2E)';
   await specialistTab.getByTestId('chat-input').fill(specialistMessageText);
   await specialistTab.getByTestId('chat-send').click();
-  await expect(specialistTab.getByText(specialistMessageText)).toBeVisible();
+  await expect(specialistTab.getByText(specialistMessageText, { exact: true }).first()).toBeVisible();
 
   await clientTab.reload();
   await clientTab.goto(`/#/messages?participantId=${specialistMe.data.id}`);
-  await expect(clientTab.getByText(specialistMessageText)).toBeVisible();
+  await expect(clientTab.getByText(specialistMessageText, { exact: true }).first()).toBeVisible();
 
   // Final role check: tabs must not "become" each other after chat flow.
   const clientMeAfter = await authedRequest(clientTab, 'GET', '/api/auth/me/');
