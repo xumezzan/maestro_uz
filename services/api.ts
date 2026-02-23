@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getAccessToken, getRefreshToken, setAuthTokens, clearAuthTokens } from './authStorage';
 
 const API_URL = '/api';
 
@@ -12,7 +13,7 @@ const api = axios.create({
 // Request interceptor — attach access token
 api.interceptors.request.use(
     (config) => {
-        const token = localStorage.getItem('accessToken');
+        const token = getAccessToken();
         if (token) {
             config.headers['Authorization'] = `Bearer ${token}`;
         }
@@ -60,7 +61,7 @@ api.interceptors.response.use(
             originalRequest._retry = true;
             isRefreshing = true;
 
-            const refreshToken = localStorage.getItem('refreshToken');
+            const refreshToken = getRefreshToken();
             if (refreshToken) {
                 try {
                     const response = await axios.post(`${API_URL}/auth/refresh/`, {
@@ -69,11 +70,7 @@ api.interceptors.response.use(
 
                     if (response.status === 200) {
                         const { access, refresh } = response.data;
-                        localStorage.setItem('accessToken', access);
-                        // Store new refresh token (rotation gives us a new one)
-                        if (refresh) {
-                            localStorage.setItem('refreshToken', refresh);
-                        }
+                        setAuthTokens(access, refresh);
                         api.defaults.headers.common['Authorization'] = `Bearer ${access}`;
                         processQueue(null, access);
                         return api(originalRequest);
@@ -81,8 +78,7 @@ api.interceptors.response.use(
                 } catch (refreshError) {
                     processQueue(refreshError, null);
                     // Refresh failed — clear tokens and redirect to login
-                    localStorage.removeItem('accessToken');
-                    localStorage.removeItem('refreshToken');
+                    clearAuthTokens();
                     window.location.href = '/#/login';
                     return Promise.reject(refreshError);
                 } finally {
@@ -90,8 +86,7 @@ api.interceptors.response.use(
                 }
             } else {
                 isRefreshing = false;
-                localStorage.removeItem('accessToken');
-                localStorage.removeItem('refreshToken');
+                clearAuthTokens();
             }
         }
         return Promise.reject(error);

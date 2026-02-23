@@ -327,7 +327,7 @@ export const ProfilePage: React.FC = () => {
                                     <div className="space-y-4">
                                         <div className="flex items-center justify-between mb-4">
                                             <h2 className="text-xl font-bold text-heading">{t('activeOrders')}</h2>
-                                            <Link to="/create-task" className="fiverr-btn fiverr-btn-primary text-sm px-4 py-2">
+                                            <Link to="/client/create-task" className="fiverr-btn fiverr-btn-primary text-sm px-4 py-2">
                                                 + {t('createOrder')}
                                             </Link>
                                         </div>
@@ -411,7 +411,7 @@ export const ProfilePage: React.FC = () => {
                                                 </div>
                                                 <h3 className="font-bold text-heading text-lg">{t('noActiveOrders')}</h3>
                                                 <p className="text-fiverr-text-muted mt-1 mb-6">{t('createOrderToFind')}</p>
-                                                <Link to="/create-task" className="text-fiverr-green font-bold hover:underline">{t('createNow')}</Link>
+                                                <Link to="/client/create-task" className="text-fiverr-green font-bold hover:underline">{t('createNow')}</Link>
                                             </div>
                                         )}
                                     </div>
@@ -487,7 +487,7 @@ export const ProfilePage: React.FC = () => {
                                         </div>
                                         <h3 className="font-bold text-heading text-lg">{t('favoritesEmpty')}</h3>
                                         <p className="text-fiverr-text-muted mt-1 mb-6">{t('favoritesEmptyDesc')}</p>
-                                        <Link to="/search" className="text-fiverr-green font-bold hover:underline">{t('findSpecialists')}</Link>
+                                        <Link to="/client/search" className="text-fiverr-green font-bold hover:underline">{t('findSpecialists')}</Link>
                                     </div>
                                 )}
                             </div>

@@ -3,6 +3,7 @@ import useWebSocket, { ReadyState } from 'react-use-websocket';
 import { Task, TaskStatus, UserRole, ServiceCategory, UserProfile, Specialist, Conversation, Message, TaskResponse } from '../types';
 import { useToast } from './ToastContext';
 import api from '../services/api';
+import { getAccessToken, getRefreshToken, setAuthTokens, clearAuthTokens } from '../services/authStorage';
 
 type ChatConnectionStatus = 'connected' | 'connecting' | 'reconnecting' | 'disconnected';
 
@@ -207,7 +208,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, []);
 
   // ── WebSocket Setup ──────────────────────────────────────────────────
-  const token = localStorage.getItem('accessToken');
+  const token = getAccessToken();
   const wsUrl = currentUser && token ? `${WS_BASE_URL}/chat/?token=${token}` : null;
 
   const { sendJsonMessage, lastJsonMessage, readyState } = useWebSocket(wsUrl, {
@@ -271,7 +272,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // ── Init auth on mount ────────────────────────────────────────────────
   useEffect(() => {
     const initAuth = async () => {
-      const currentToken = localStorage.getItem('accessToken');
+      const currentToken = getAccessToken();
       if (currentToken) {
         try {
           const meRes = await api.get('/auth/me/');
@@ -280,8 +281,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           setRole(meRes.data.role as UserRole);
         } catch (e) {
           console.error("Auth check failed", e);
-          localStorage.removeItem('accessToken');
-          localStorage.removeItem('refreshToken');
+          clearAuthTokens();
         } finally {
           setIsAuthLoading(false);
         }
@@ -469,8 +469,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const response = await api.post('/auth/login/', { email, password });
       const { access, refresh, user: userData } = response.data;
 
-      localStorage.setItem('accessToken', access);
-      localStorage.setItem('refreshToken', refresh);
+      setAuthTokens(access, refresh);
 
       const userProfile = mapUserProfile(userData);
       setCurrentUser(userProfile);
@@ -507,8 +506,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const response = await api.post('/auth/verify-email/', { email, code });
       const { access, refresh, user: userData } = response.data;
 
-      localStorage.setItem('accessToken', access);
-      localStorage.setItem('refreshToken', refresh);
+      setAuthTokens(access, refresh);
 
       const userProfile = mapUserProfile(userData);
       setCurrentUser(userProfile);
@@ -568,7 +566,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const logout = async () => {
-    const refreshToken = localStorage.getItem('refreshToken');
+    const refreshToken = getRefreshToken();
     if (refreshToken) {
       try {
         await api.post('/auth/logout/', { refresh: refreshToken });
@@ -576,8 +574,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         console.error("Logout API call failed", e);
       }
     }
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
+    clearAuthTokens();
     setCurrentUser(null);
     setRole(UserRole.CLIENT);
     setConversations([]);

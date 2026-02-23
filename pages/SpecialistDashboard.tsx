@@ -7,6 +7,7 @@ import { CITIES } from '../constants';
 import { analyzeServiceRequest } from '../services/geminiService';
 import api from '../services/api';
 import { useLanguage } from '../context/LanguageContext';
+import { getAccessToken } from '../services/authStorage';
 
 export const SpecialistDashboard: React.FC = () => {
     const { tasks, currentUser, addResponse, taskResponses } = useAppContext();
@@ -38,7 +39,7 @@ export const SpecialistDashboard: React.FC = () => {
 
     useEffect(() => {
         if (activeTab === 'analytics') {
-            const token = localStorage.getItem('accessToken');
+            const token = getAccessToken();
             if (!token) return;
             setLoadingStats(true);
             const fetchStats = async () => {
@@ -457,7 +458,7 @@ export const SpecialistDashboard: React.FC = () => {
                                                 {currentUser.specialistProfile?.balance || 0} UZS
                                             </span>
                                             <button
-                                                onClick={() => navigate('/top-up')}
+                                                onClick={() => navigate('/specialist/top-up')}
                                                 className="text-xs bg-fiverr-green/10 text-fiverr-green hover:bg-fiverr-green hover:text-white px-2 py-1 rounded transition-colors"
                                             >
                                                 {t('topUp') || 'Пополнить'}

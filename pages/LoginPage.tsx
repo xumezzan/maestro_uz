@@ -21,9 +21,9 @@ export const LoginPage: React.FC = () => {
     try {
       const user = await login(email, password);
       if (user.role === UserRole.SPECIALIST) {
-        navigate('/specialist-dashboard');
+        navigate('/specialist/dashboard');
       } else {
-        navigate('/');
+        navigate('/client');
       }
     } catch (error: any) {
       addToast(error.message || "Ошибка входа! Проверьте email и пароль.", 'error');
@@ -43,7 +43,7 @@ export const LoginPage: React.FC = () => {
       <div className="relative max-w-md w-full">
         {/* Logo */}
         <div className="text-center mb-8">
-          <Link to="/" className="inline-block text-3xl font-black text-heading">
+          <Link to="/client" className="inline-block text-3xl font-black text-heading">
             maestro<span className="text-fiverr-green">.</span>
           </Link>
         </div>

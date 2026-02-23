@@ -100,7 +100,7 @@ export const SpecialistOnboardingPage: React.FC = () => {
                 profileFile: profileFile || undefined
             });
             addToast('Профиль специалиста успешно создан!', 'success');
-            navigate('/specialist-dashboard');
+            navigate('/specialist/dashboard');
         } catch (error: any) {
             addToast('Ошибка подтверждения или создания профиля.', 'error');
         }

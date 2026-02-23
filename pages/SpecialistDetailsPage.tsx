@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
+import { getAccessToken } from '../services/authStorage';
 
 interface Review {
     id: number;
@@ -58,7 +59,7 @@ export const SpecialistDetailsPage: React.FC = () => {
     }, [id, activeTab]);
 
     const handleSubmitReview = async () => {
-        const token = localStorage.getItem('access_token');
+        const token = getAccessToken();
         if (!token) { navigate('/login'); return; }
         setSubmittingReview(true);
         try {

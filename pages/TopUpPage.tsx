@@ -3,6 +3,7 @@ import { useAppContext } from '../context/AppContext';
 import { useNavigate } from 'react-router-dom';
 import { Coins, ArrowLeft, ShieldCheck, CreditCard } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
+import { getAccessToken } from '../services/authStorage';
 
 export const TopUpPage: React.FC = () => {
     const { currentUser } = useAppContext();
@@ -14,7 +15,7 @@ export const TopUpPage: React.FC = () => {
     const [isLoading, setIsLoading] = useState(false);
 
     if (!currentUser || currentUser.role !== 'SPECIALIST') {
-        navigate('/');
+        navigate('/client');
         return null;
     }
 
@@ -27,7 +28,7 @@ export const TopUpPage: React.FC = () => {
 
         setIsLoading(true);
         try {
-            const token = localStorage.getItem('access_token');
+            const token = getAccessToken();
             const res = await fetch('http://localhost:8000/api/payments/create/', {
                 method: 'POST',
                 headers: {

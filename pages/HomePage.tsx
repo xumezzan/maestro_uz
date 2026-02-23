@@ -25,7 +25,7 @@ export const HomePage: React.FC = () => {
 
   useEffect(() => {
     if (currentUser?.role === UserRole.SPECIALIST) {
-      navigate('/specialist-dashboard');
+      navigate('/specialist/dashboard');
     }
   }, [currentUser, navigate]);
 
@@ -36,12 +36,12 @@ export const HomePage: React.FC = () => {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (query.trim()) {
-      navigate(`/search?q=${encodeURIComponent(query)}`);
+      navigate(`/client/search?q=${encodeURIComponent(query)}`);
     }
   };
 
   const handleCategoryClick = (cat: string) => {
-    navigate(`/search?category=${encodeURIComponent(cat)}`);
+    navigate(`/client/search?category=${encodeURIComponent(cat)}`);
   };
 
   const handleComingSoon = (e: React.MouseEvent) => {
@@ -134,7 +134,7 @@ export const HomePage: React.FC = () => {
               <p className="text-fiverr-text-muted">{t('exploreCat') || 'Откройте для себя нужную услугу'}</p>
             </div>
             <button
-              onClick={() => navigate('/categories')}
+              onClick={() => navigate('/client/categories')}
               className="hidden md:flex items-center gap-2 text-fiverr-green font-semibold hover:text-fiverr-green-dark transition-colors"
             >
               {t('allServices') || 'Все услуги'} <ArrowRight className="w-5 h-5" />
@@ -170,7 +170,7 @@ export const HomePage: React.FC = () => {
           {/* Mobile: show all */}
           <div className="mt-6 md:hidden text-center">
             <button
-              onClick={() => navigate('/categories')}
+              onClick={() => navigate('/client/categories')}
               className="fiverr-btn fiverr-btn-outline"
             >
               {t('allServices') || 'Все услуги'} <ArrowRight className="w-4 h-4" />

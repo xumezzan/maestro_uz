@@ -107,7 +107,7 @@ export const CreateTaskPage: React.FC = () => {
       responsesCount: 0
     };
     addTask(newTask);
-    navigate('/specialist-dashboard');
+    navigate('/client');
   };
 
   if (!currentUser) return null;

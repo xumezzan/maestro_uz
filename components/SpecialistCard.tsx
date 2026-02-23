@@ -27,7 +27,7 @@ export const SpecialistCard: React.FC<Props> = ({ specialist }) => {
   };
 
   const goToDetails = () => {
-    navigate(`/specialist/${specialist.id}`);
+    navigate(`/client/specialist/${specialist.id}`);
   };
 
   const formattedPrice = new Intl.NumberFormat('ru-RU').format(specialist.priceStart);

@@ -18,21 +18,21 @@ export const BottomNavigation: React.FC = () => {
 
   const navItems = [
     {
-      path: isSpecialist ? "/specialist-dashboard" : "/",
+      path: isSpecialist ? "/specialist/dashboard" : "/client",
       icon: isSpecialist ? Briefcase : Home,
       label: isSpecialist ? 'orders' : 'main',
       showForSpecialist: true,
       showForUser: true,
     },
     {
-      path: "/categories",
+      path: "/client/categories",
       icon: Search,
       label: 'search',
       showForSpecialist: false,
       showForUser: true,
     },
     {
-      path: "/create-task",
+      path: "/client/create-task",
       icon: PlusCircle,
       label: 'create',
       showForSpecialist: false,

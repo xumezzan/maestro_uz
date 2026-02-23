@@ -9,7 +9,7 @@ export const CategoriesPage: React.FC = () => {
   const { t } = useLanguage();
 
   const handleCategoryClick = (category: string) => {
-    navigate(`/search?category=${encodeURIComponent(category)}`);
+    navigate(`/client/search?category=${encodeURIComponent(category)}`);
   };
 
   return (
@@ -85,7 +85,7 @@ export const CategoriesPage: React.FC = () => {
             {t('notFoundDesc') || 'Опишите задачу и получите предложения от специалистов'}
           </p>
           <button
-            onClick={() => navigate('/create-task')}
+            onClick={() => navigate('/client/create-task')}
             className="fiverr-btn fiverr-btn-primary text-base px-8 py-3 relative z-10"
           >
             <Search className="w-5 h-5" />

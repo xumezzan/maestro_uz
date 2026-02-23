@@ -30,7 +30,7 @@ export const Header: React.FC = () => {
 
   const handleLogout = () => {
     logout();
-    navigate('/');
+    navigate('/client');
     setIsMenuOpen(false);
   };
 
@@ -41,10 +41,10 @@ export const Header: React.FC = () => {
   const handleRoleSwitch = () => {
     if (currentUser) {
       logout();
-      if (isSpecialist) navigate('/');
+      if (isSpecialist) navigate('/client');
       else navigate('/become-specialist');
     } else {
-      if (location.pathname === '/become-specialist') navigate('/');
+      if (location.pathname === '/become-specialist') navigate('/client');
       else navigate('/become-specialist');
     }
     setIsMenuOpen(false);
@@ -53,7 +53,7 @@ export const Header: React.FC = () => {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
+      navigate(`/client/search?q=${encodeURIComponent(searchQuery)}`);
     }
   };
 
@@ -62,11 +62,11 @@ export const Header: React.FC = () => {
   }, 0);
 
   const categories = [
-    { label: t('Репетиторы') || 'Репетиторы', path: '/search?category=Репетиторы' },
-    { label: t('Мастера по ремонту') || 'Ремонт', path: '/search?category=Ремонт' },
-    { label: t('Фрилансеры') || 'Фриланс', path: '/search?category=IT и фриланс' },
-    { label: t('Мастера красоты') || 'Красота', path: '/search?category=Красота' },
-    { label: t('Спортивные тренеры') || 'Спорт', path: '/search?category=Спорт' },
+    { label: t('Репетиторы') || 'Репетиторы', path: '/client/search?category=Репетиторы' },
+    { label: t('Мастера по ремонту') || 'Ремонт', path: '/client/search?category=Ремонт' },
+    { label: t('Фрилансеры') || 'Фриланс', path: '/client/search?category=IT и фриланс' },
+    { label: t('Мастера красоты') || 'Красота', path: '/client/search?category=Красота' },
+    { label: t('Спортивные тренеры') || 'Спорт', path: '/client/search?category=Спорт' },
   ];
 
   return (
@@ -84,7 +84,7 @@ export const Header: React.FC = () => {
           <div className="flex items-center justify-between h-16">
 
             {/* Logo */}
-            <Link to={isSpecialist ? "/specialist-dashboard" : "/"} className="flex items-center gap-1 group flex-shrink-0">
+            <Link to={isSpecialist ? "/specialist/dashboard" : "/client"} className="flex items-center gap-1 group flex-shrink-0">
               <span className="text-2xl font-black text-heading tracking-tight">
                 maestro
               </span>
@@ -149,7 +149,7 @@ export const Header: React.FC = () => {
               {/* Create Task - for clients */}
               {!isSpecialist && currentUser && (
                 <Link
-                  to="/create-task"
+                  to="/client/create-task"
                   className="hidden md:flex items-center gap-2 fiverr-btn fiverr-btn-primary text-sm py-2 ml-2"
                 >
                   <PlusCircle className="w-4 h-4" />
@@ -176,7 +176,7 @@ export const Header: React.FC = () => {
               {/* Categories */}
               {!isSpecialist && (
                 <Link
-                  to="/categories"
+                  to="/client/categories"
                   className="hidden md:flex p-2 rounded-lg transition-colors"
                   style={{ color: 'var(--fiverr-text-muted)' }}
                 >
@@ -250,7 +250,7 @@ export const Header: React.FC = () => {
                   </Link>
                 ))}
                 <Link
-                  to="/categories"
+                  to="/client/categories"
                   className="text-sm font-medium text-fiverr-green hover:text-fiverr-green-dark whitespace-nowrap transition-colors py-2"
                 >
                   {t('allServices') || 'Все услуги'} →
@@ -325,12 +325,12 @@ export const Header: React.FC = () => {
                   </>
                 )}
                 {!isSpecialist && (
-                  <Link to="/categories" className="flex items-center gap-3 p-3 rounded-xl transition-colors font-medium" style={{ color: 'var(--fiverr-text)' }}>
+                  <Link to="/client/categories" className="flex items-center gap-3 p-3 rounded-xl transition-colors font-medium" style={{ color: 'var(--fiverr-text)' }}>
                     <LayoutGrid className="w-5 h-5 text-fiverr-green" /> {t('catalog')}
                   </Link>
                 )}
                 {!isSpecialist && currentUser && (
-                  <Link to="/create-task" className="flex items-center gap-3 p-3 rounded-xl bg-fiverr-green text-white font-bold">
+                  <Link to="/client/create-task" className="flex items-center gap-3 p-3 rounded-xl bg-fiverr-green text-white font-bold">
                     <PlusCircle className="w-5 h-5" /> {t('createOrder')}
                   </Link>
                 )}

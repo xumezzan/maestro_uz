@@ -4,6 +4,7 @@ import { Shield, ShieldAlert, BadgeCheck, X, Eye } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useToast } from '../context/ToastContext';
 import { Specialist } from '../types';
+import { getAccessToken } from '../services/authStorage';
 
 export const AdminDashboard: React.FC = () => {
     const { currentUser } = useAppContext();
@@ -15,14 +16,14 @@ export const AdminDashboard: React.FC = () => {
     useEffect(() => {
         // Redirect if not admin
         if (!currentUser || !currentUser.isAdmin) {
-            navigate('/');
+            navigate('/client');
             return;
         }
 
         const fetchPending = async () => {
             try {
                 const res = await fetch('/api/admin/specialists/', {
-                    headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` }
+                    headers: { 'Authorization': `Bearer ${getAccessToken()}` }
                 });
                 if (res.ok) {
                     const data = await res.json();
@@ -51,7 +52,7 @@ export const AdminDashboard: React.FC = () => {
         try {
             const res = await fetch(`/api/admin/specialists/${id}/verify/`, {
                 method: 'POST',
-                headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` }
+                headers: { 'Authorization': `Bearer ${getAccessToken()}` }
             });
             if (res.ok) {
                 setPendingSpecialists(prev => prev.filter(s => s.id !== id));
@@ -66,7 +67,7 @@ export const AdminDashboard: React.FC = () => {
         try {
             const res = await fetch(`/api/admin/specialists/${id}/reject/`, {
                 method: 'POST',
-                headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` }
+                headers: { 'Authorization': `Bearer ${getAccessToken()}` }
             });
             if (res.ok) {
                 setPendingSpecialists(prev => prev.filter(s => s.id !== id));
