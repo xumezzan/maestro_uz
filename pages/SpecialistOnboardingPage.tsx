@@ -5,11 +5,14 @@ import { ServiceCategory } from '../types';
 import { User, Briefcase, FileCheck, CheckCircle, Upload, ArrowRight, ArrowLeft } from 'lucide-react';
 import { PasswordStrengthMeter } from '../components/PasswordStrengthMeter';
 import { useToast } from '../context/ToastContext';
+import { DETAILED_DIRECTORY } from '../constants';
+import { useLanguage } from '../context/LanguageContext';
 
 export const SpecialistOnboardingPage: React.FC = () => {
     const navigate = useNavigate();
     const { registerSpecialist, registerRequest, verifyEmail } = useAppContext();
     const { addToast } = useToast();
+    const { t } = useLanguage();
     const [step, setStep] = useState(1);
     const [otpCode, setOtpCode] = useState('');
 
@@ -29,7 +32,8 @@ export const SpecialistOnboardingPage: React.FC = () => {
         description: '',
         priceStart: '',
         experience: '',
-        location: 'Ташкент'
+        location: 'Ташкент',
+        tags: [] as string[]
     });
 
     const handleNext = (e: React.FormEvent) => {
@@ -90,7 +94,7 @@ export const SpecialistOnboardingPage: React.FC = () => {
                 description: formData.description,
                 priceStart: parseInt(formData.priceStart) || 0,
                 location: formData.location,
-                tags: [formData.category],
+                tags: formData.tags.length > 0 ? formData.tags : [formData.category],
                 verified: true,
                 passportFile: passportFile || undefined,
                 profileFile: profileFile || undefined
@@ -216,6 +220,38 @@ export const SpecialistOnboardingPage: React.FC = () => {
                                     <option value="Андижан">Андижан</option>
                                 </select>
                             </div>
+
+                            {/* Tag Selection UI */}
+                            {DETAILED_DIRECTORY.find(d => d.title === formData.category)?.items && (
+                                <div>
+                                    <label className="block text-sm font-medium text-fiverr-text-muted mb-2">{t('specialization') || 'Специализация (компетенции)'}</label>
+                                    <div className="flex flex-wrap gap-2">
+                                        {DETAILED_DIRECTORY.find(d => d.title === formData.category)?.items.map(tag => (
+                                            <button
+                                                type="button"
+                                                key={tag}
+                                                onClick={() => {
+                                                    setFormData(prev => ({
+                                                        ...prev,
+                                                        tags: prev.tags.includes(tag)
+                                                            ? prev.tags.filter(t => t !== tag)
+                                                            : [...prev.tags, tag]
+                                                    }));
+                                                }}
+                                                className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${formData.tags.includes(tag)
+                                                    ? 'bg-fiverr-green text-white border-2 border-fiverr-green'
+                                                    : 'bg-fiverr-card text-fiverr-text-muted border-2 border-fiverr-border hover:border-fiverr-green/50 hover:text-heading'
+                                                    }`}
+                                            >
+                                                {tag}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    {formData.tags.length === 0 && (
+                                        <p className="text-xs text-fiverr-yellow mt-2">{t('selectAtLeastOneTag') || 'Выберите хотя бы одну специализацию, чтобы клиентам было проще вас найти.'}</p>
+                                    )}
+                                </div>
+                            )}
 
                             <div>
                                 <label className="block text-sm font-medium text-fiverr-text-muted mb-1.5">Опыт работы (лет)</label>
