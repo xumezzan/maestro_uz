@@ -349,35 +349,33 @@ export const HomePage: React.FC = () => {
             {/* Modal Body */}
             <div className="p-6 md:p-8 space-y-6">
               <div>
-                <h4 className="text-lg font-bold text-heading mb-2 text-fiverr-green">О проекте</h4>
+                <h4 className="text-lg font-bold text-heading mb-2 text-fiverr-green">{t('aboutModalTitle')}</h4>
+                <p className="text-fiverr-text-muted leading-relaxed" dangerouslySetInnerHTML={{ __html: t('aboutModalDesc') }} />
+              </div>
+
+              <div>
+                <h4 className="text-lg font-bold text-heading mb-2 text-fiverr-green">{t('aboutModalWhatTitle')}</h4>
                 <p className="text-fiverr-text-muted leading-relaxed">
-                  <strong>Maestro</strong> — это современная платформа для поиска проверенных специалистов и фрилансеров в Узбекистане. Мы создали удобное пространство, где клиенты могут легко найти мастера для любой задачи, а профессионалы — стабильный поток заказов.
+                  {t('aboutModalWhatDesc')}
                 </p>
               </div>
 
               <div>
-                <h4 className="text-lg font-bold text-heading mb-2 text-fiverr-green">Чем мы занимаемся?</h4>
-                <p className="text-fiverr-text-muted leading-relaxed">
-                  Мы соединяем людей. Будь то ремонт квартиры, изучение английского языка, настройка компьютера или организация праздника — на Maestro собраны тысячи анкет специалистов разных направлений. Система отзывов, рейтингов и прозрачные цены помогают сделать правильный выбор.
-                </p>
-              </div>
-
-              <div>
-                <h4 className="text-lg font-bold text-heading mb-2 text-fiverr-green">Для кого этот сервис?</h4>
+                <h4 className="text-lg font-bold text-heading mb-2 text-fiverr-green">{t('aboutModalForWhoTitle')}</h4>
                 <div className="flex flex-col md:flex-row gap-6 mt-4">
                   <div className="flex-1 bg-white/5 border border-white/10 p-5 rounded-2xl">
                     <div className="w-10 h-10 rounded-xl bg-fiverr-green/20 flex items-center justify-center text-fiverr-green mb-3">
                       <Users className="w-5 h-5" />
                     </div>
-                    <h5 className="font-bold text-heading mb-2">Для клиентов</h5>
-                    <p className="text-sm text-fiverr-text-muted">Для тех, кто ценит свое время. Быстрый поиск, реальные отзывы и безопасный выбор лучшего исполнителя для любой бытовой или бизнес-задачи.</p>
+                    <h5 className="font-bold text-heading mb-2">{t('aboutModalForClients')}</h5>
+                    <p className="text-sm text-fiverr-text-muted">{t('aboutModalForClientsDesc')}</p>
                   </div>
                   <div className="flex-1 bg-white/5 border border-white/10 p-5 rounded-2xl">
                     <div className="w-10 h-10 rounded-xl bg-fiverr-blue/20 flex items-center justify-center text-fiverr-blue mb-3">
                       <Award className="w-5 h-5" />
                     </div>
-                    <h5 className="font-bold text-heading mb-2">Для специалистов</h5>
-                    <p className="text-sm text-fiverr-text-muted">Для профессионалов своего дела. Удобный инструмент для поиска клиентов, создания репутации и увеличения собственного дохода.</p>
+                    <h5 className="font-bold text-heading mb-2">{t('aboutModalForPros')}</h5>
+                    <p className="text-sm text-fiverr-text-muted">{t('aboutModalForProsDesc')}</p>
                   </div>
                 </div>
               </div>
@@ -388,7 +386,7 @@ export const HomePage: React.FC = () => {
                 onClick={() => setShowAboutModal(false)}
                 className="fiverr-btn fiverr-btn-primary px-8 py-2.5"
               >
-                Понятно
+                {t('gotIt')}
               </button>
             </div>
           </div>

@@ -76,9 +76,21 @@ export const translations = {
     "footerDesc": "Сервис поиска специалистов в Узбекистане",
     "aboutService": "О сервисе",
     "help": "Помощь",
-    "rules": "Правила",
     "rights": "Все права защищены.",
+    "comingSoon": "Скоро",
     "tashkent": "Ташкент",
+
+    // About Modal
+    "aboutModalTitle": "О проекте",
+    "aboutModalDesc": "<strong>Maestro</strong> — это современная платформа для поиска проверенных специалистов и фрилансеров в Узбекистане. Мы создали удобное пространство, где клиенты могут легко найти мастера для любой задачи, а профессионалы — стабильный поток заказов.",
+    "aboutModalWhatTitle": "Чем мы занимаемся?",
+    "aboutModalWhatDesc": "Мы соединяем людей. Будь то ремонт квартиры, изучение английского языка, настройка компьютера или организация праздника — на Maestro собраны тысячи анкет специалистов разных направлений. Система отзывов, рейтингов и прозрачные цены помогают сделать правильный выбор.",
+    "aboutModalForWhoTitle": "Для кого этот сервис?",
+    "aboutModalForClients": "Для клиентов",
+    "aboutModalForClientsDesc": "Для тех, кто ценит свое время. Быстрый поиск, реальные отзывы и безопасный выбор лучшего исполнителя для любой бытовой или бизнес-задачи.",
+    "aboutModalForPros": "Для специалистов",
+    "aboutModalForProsDesc": "Для профессионалов своего дела. Удобный инструмент для поиска клиентов, создания репутации и увеличения собственного дохода.",
+    "gotIt": "Понятно",
 
     // Catalog Page
     "catalogLabel": "КАТАЛОГ УСЛУГ",
@@ -471,7 +483,20 @@ export const translations = {
     "help": "Yordam",
     "rules": "Qoidalar",
     "rights": "Barcha huquqlar himoyalangan.",
+    "comingSoon": "Tez kunda",
     "tashkent": "Toshkent",
+
+    // About Modal
+    "aboutModalTitle": "Loyiha haqida",
+    "aboutModalDesc": "<strong>Maestro</strong> — bu O'zbekistonda tekshirilgan mutaxassislar va frilanserlarni topish uchun zamonaviy platforma. Biz mijozlar har qanday vazifa uchun ustani osongina topishi, professionallar esa barqaror buyurtmalar oqimiga ega bo'lishi uchun qulay muhit yaratdik.",
+    "aboutModalWhatTitle": "Biz nima bilan shug'ullanamiz?",
+    "aboutModalWhatDesc": "Biz odamlarni birlashtiramiz. Kvartira ta'miri bo'ladimi, ingliz tilini o'rganish, kompyuterni sozlash yoki bayram tashkil etishmi — Maestro'da turli yo'nalishdagi mutaxassislarning minglab anketalari to'plangan. Sharhlar tizimi, reytinglar va shaffof narxlar to'g'ri tanlov qilishga yordam beradi.",
+    "aboutModalForWhoTitle": "Bu xizmat kim uchun?",
+    "aboutModalForClients": "Mijozlar uchun",
+    "aboutModalForClientsDesc": "Vaqtini qadrlaydiganlar uchun. Tezkor qidiruv, haqiqiy sharhlar va har qanday maishiy yoki biznes vazifasi uchun eng yaxshi ijrochini xavfsiz tanlash.",
+    "aboutModalForPros": "Mutaxassislar uchun",
+    "aboutModalForProsDesc": "O'z ishining professionallari uchun. Mijozlarni topish, obro' yaratish va shaxsiy daromadni oshirish uchun qulay vosita.",
+    "gotIt": "Tushunarli",
 
     // Catalog Page
     "catalogLabel": "XIZMATLAR KATALOGI",
