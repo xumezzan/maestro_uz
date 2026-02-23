@@ -130,7 +130,8 @@ export const SpecialistDetailsPage: React.FC = () => {
         text: ['Отличный специалист! Сделал все быстро и качественно.', 'Рекомендую, очень вежливый и профессиональный подход.', 'Цена соответствует качеству. Спасибо!'][i]
     }));
 
-    const mockPortfolio = [1, 2, 3, 4, 5, 6].map(i => `https://picsum.photos/400/300?random=${parseInt(specialist.id) * 10 + i}`);
+    // TODO: Fetch actual portfolio from backend when ready
+    const mockPortfolio: string[] = [];
 
     return (
         <div className="min-h-screen pb-24 md:pb-12 page-bg">
@@ -305,14 +306,21 @@ export const SpecialistDetailsPage: React.FC = () => {
                             {activeTab === 'portfolio' && (
                                 <div className="animate-fade-in">
                                     <h3 className="text-xl font-bold text-heading mb-6">{t('photos') || 'Фото'} ({mockPortfolio.length})</h3>
-                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                                        {mockPortfolio.map((img, idx) => (
-                                            <div key={idx} className="aspect-square rounded-xl overflow-hidden bg-fiverr-card group relative cursor-zoom-in border border-fiverr-border">
-                                                <img src={img} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
-                                            </div>
-                                        ))}
-                                    </div>
+                                    {mockPortfolio.length > 0 ? (
+                                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                            {mockPortfolio.map((img, idx) => (
+                                                <div key={idx} className="aspect-square rounded-xl overflow-hidden bg-fiverr-card group relative cursor-zoom-in border border-fiverr-border">
+                                                    <img src={img} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="flex flex-col items-center justify-center py-10 bg-white/5 border border-fiverr-border rounded-2xl">
+                                            <ImageIcon className="w-12 h-12 text-fiverr-text-dim mb-3" />
+                                            <p className="text-fiverr-text-muted">{t('noPortfolioPhotos') || 'Специалист пока не добавил примеры работ'}</p>
+                                        </div>
+                                    )}
                                 </div>
                             )}
 
@@ -338,7 +346,7 @@ export const SpecialistDetailsPage: React.FC = () => {
                                             ].map(({ label, key }) => {
                                                 const avg = reviews.length > 0
                                                     ? reviews.reduce((sum, r) => sum + (r[key as keyof Review] as number), 0) / reviews.length
-                                                    : 5;
+                                                    : 0;
                                                 return (
                                                     <div key={key} className="flex items-center gap-3 text-sm">
                                                         <div className="w-36 font-medium text-fiverr-text-muted text-xs">{label}</div>
@@ -465,8 +473,8 @@ export const SpecialistDetailsPage: React.FC = () => {
                                                 key={val}
                                                 onClick={() => setReviewForm(prev => ({ ...prev, [key]: val }))}
                                                 className={`w-8 h-8 rounded-lg text-lg transition-transform hover:scale-110 ${(reviewForm[key as keyof typeof reviewForm] as number) >= val
-                                                        ? 'text-fiverr-yellow'
-                                                        : 'text-fiverr-border'
+                                                    ? 'text-fiverr-yellow'
+                                                    : 'text-fiverr-border'
                                                     }`}
                                             >
                                                 ★
