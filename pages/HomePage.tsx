@@ -7,12 +7,14 @@ import {
 import { HERO_CARDS, POPULAR_REQUESTS } from '../constants';
 import { useLanguage } from '../context/LanguageContext';
 import { useAppContext } from '../context/AppContext';
+import { useToast } from '../context/ToastContext';
 import { UserRole } from '../types';
 
 export const HomePage: React.FC = () => {
   const [query, setQuery] = useState('');
   const navigate = useNavigate();
   const { t } = useLanguage();
+  const { addToast } = useToast();
   const { currentUser, specialists, tasks } = useAppContext();
   const specialistsCount = specialists.length;
   const tasksCount = tasks.length;
@@ -39,6 +41,11 @@ export const HomePage: React.FC = () => {
 
   const handleCategoryClick = (cat: string) => {
     navigate(`/search?category=${encodeURIComponent(cat)}`);
+  };
+
+  const handleComingSoon = (e: React.MouseEvent) => {
+    e.preventDefault();
+    addToast(t('comingSoon') || 'Страница в разработке', 'info');
   };
 
   return (
@@ -291,25 +298,25 @@ export const HomePage: React.FC = () => {
             {/* Links */}
             <div>
               <h4 className="font-bold text-heading mb-4 text-sm uppercase tracking-wider">{t('categories') || 'Категории'}</h4>
-              <div className="space-y-2">
+              <div className="space-y-2 text-left flex flex-col items-start">
                 {['Репетиторы', 'Мастера по ремонту', 'Фрилансеры', 'Мастера красоты'].map(cat => (
-                  <a key={cat} href="#" className="block text-sm text-fiverr-text-muted hover:text-fiverr-green transition-colors">{t(cat) || cat}</a>
+                  <button key={cat} onClick={() => handleCategoryClick(cat)} className="block text-sm text-fiverr-text-muted hover:text-fiverr-green transition-colors text-left">{t(cat) || cat}</button>
                 ))}
               </div>
             </div>
             <div>
               <h4 className="font-bold text-heading mb-4 text-sm uppercase tracking-wider">{t('aboutService') || 'О сервисе'}</h4>
-              <div className="space-y-2">
-                <a href="#" className="block text-sm text-fiverr-text-muted hover:text-fiverr-green transition-colors">{t('aboutService') || 'О сервисе'}</a>
-                <a href="#" className="block text-sm text-fiverr-text-muted hover:text-fiverr-green transition-colors">{t('help') || 'Помощь'}</a>
-                <a href="#" className="block text-sm text-fiverr-text-muted hover:text-fiverr-green transition-colors">{t('rules') || 'Правила'}</a>
+              <div className="space-y-2 text-left flex flex-col items-start">
+                <button onClick={handleComingSoon} className="block text-sm text-fiverr-text-muted hover:text-fiverr-green transition-colors text-left">{t('aboutService') || 'О сервисе'}</button>
+                <button onClick={handleComingSoon} className="block text-sm text-fiverr-text-muted hover:text-fiverr-green transition-colors text-left">{t('help') || 'Помощь'}</button>
+                <button onClick={handleComingSoon} className="block text-sm text-fiverr-text-muted hover:text-fiverr-green transition-colors text-left">{t('rules') || 'Правила'}</button>
               </div>
             </div>
             <div>
               <h4 className="font-bold text-heading mb-4 text-sm uppercase tracking-wider">{t('forSpecialists') || 'Для специалистов'}</h4>
-              <div className="space-y-2">
-                <a href="#" className="block text-sm text-fiverr-text-muted hover:text-fiverr-green transition-colors">{t('becomeSpecialist') || 'Стать специалистом'}</a>
-                <a href="#" className="block text-sm text-fiverr-text-muted hover:text-fiverr-green transition-colors">{t('getMoreOrders') || 'Получайте заказы'}</a>
+              <div className="space-y-2 text-left flex flex-col items-start">
+                <button onClick={() => navigate('/become-specialist')} className="block text-sm text-fiverr-text-muted hover:text-fiverr-green transition-colors text-left">{t('becomeSpecialist') || 'Стать специалистом'}</button>
+                <button onClick={() => navigate('/become-specialist')} className="block text-sm text-fiverr-text-muted hover:text-fiverr-green transition-colors text-left">{t('getMoreOrders') || 'Получайте заказы'}</button>
               </div>
             </div>
           </div>
