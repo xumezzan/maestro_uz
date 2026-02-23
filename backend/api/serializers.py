@@ -154,6 +154,7 @@ class TaskSerializer(serializers.ModelSerializer):
         model = Task
         fields = ['id', 'client', 'title', 'description', 'category', 'budget',
                   'location', 'date_info', 'status', 'created_at', 'responses_count', 'assigned_specialist']
+        read_only_fields = ['client']
 
 
 class ReviewSerializer(serializers.ModelSerializer):
