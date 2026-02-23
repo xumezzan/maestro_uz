@@ -7,12 +7,12 @@ import { UserRole, TaskStatus, UserProfile } from '../types';
 import { SpecialistCard } from '../components/SpecialistCard';
 import {
     User, Mail, Phone, MapPin, Star,
-    Settings, Camera, Edit2, BadgeCheck, Clock, Calendar, Lock, CheckCircle, Briefcase, Banknote, Tag, Instagram, Send, ChevronRight, FileText, History, Filter, XCircle, Heart, Trash2, MessageCircle
+    Settings, Camera, Edit2, BadgeCheck, Clock, Calendar, Lock, CheckCircle, Briefcase, Banknote, Tag, Instagram, Send, ChevronRight, FileText, History, Filter, XCircle, Heart, Trash2, MessageCircle, LogOut
 } from 'lucide-react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 
 export const ProfilePage: React.FC = () => {
-    const { currentUser, tasks, specialists, updateUser, deleteTask, taskResponses, startChat, acceptResponse } = useAppContext();
+    const { currentUser, tasks, specialists, updateUser, deleteTask, taskResponses, startChat, acceptResponse, logout } = useAppContext();
     const { t } = useLanguage();
     const { addToast } = useToast();
     const navigate = useNavigate();
@@ -262,6 +262,11 @@ export const ProfilePage: React.FC = () => {
                                 className={`w-full flex items-center justify-between p-3 rounded-xl transition-all mt-1 ${activeTab === 'settings' ? 'bg-fiverr-green/10 text-fiverr-green font-medium' : 'text-fiverr-text-muted hover:bg-white/5'}`}>
                                 <div className="flex items-center gap-3"><Settings className="w-5 h-5" /><span>{t('settings')}</span></div>
                                 {activeTab === 'settings' && <ChevronRight className="w-4 h-4" />}
+                            </button>
+
+                            <button onClick={() => logout()}
+                                className={`w-full flex items-center justify-between p-3 rounded-xl transition-all mt-4 text-fiverr-red hover:bg-fiverr-red/10`}>
+                                <div className="flex items-center gap-3"><LogOut className="w-5 h-5" /><span>Выйти</span></div>
                             </button>
                         </nav>
                     </div>
