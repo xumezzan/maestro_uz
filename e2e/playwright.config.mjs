@@ -3,7 +3,8 @@ import { defineConfig } from '@playwright/test';
 const isCI = !!process.env.CI;
 
 export default defineConfig({
-  testDir: './e2e',
+  // Config file already lives in /e2e, so keep tests in this same folder.
+  testDir: '.',
   testMatch: '*.spec.mjs',
   timeout: 120_000,
   expect: {

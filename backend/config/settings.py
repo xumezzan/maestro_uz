@@ -6,10 +6,15 @@ from django.core.exceptions import ImproperlyConfigured
 
 # Initialize environ
 env = environ.Env()
-# reading .env file
-environ.Env.read_env(os.path.join(Path(__file__).resolve().parent.parent.parent, '.env'))
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+PROJECT_ROOT = BASE_DIR.parent
+
+# Read .env from repository root (local dev) or backend root (containerized runs).
+for candidate in (PROJECT_ROOT / '.env', BASE_DIR / '.env'):
+    if candidate.exists():
+        environ.Env.read_env(str(candidate))
+        break
 
 SECRET_KEY = env('DJANGO_SECRET_KEY', default='django-insecure-change-me-in-production')
 
