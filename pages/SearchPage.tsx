@@ -61,14 +61,35 @@ export const SearchPage: React.FC = () => {
           };
 
           // Hardcode mappings or use AI, but fallback to manual keyword match
-          const isRepair = term.includes('сантех') || term.includes('электр') || term.includes('плиточ') || term.includes('двери') || term.includes('ремонт');
+          const isRepair = term.includes('сантех') || term.includes('электр') || term.includes('плиточ') || term.includes('двери') || term.includes('ремонт') || term.includes('штукатур');
           if (isRepair) Object.assign(mockAnalysis, { category: ServiceCategory.REPAIR });
 
-          const isTutor = term.includes('математ') || term.includes('английс') || term.includes('русский') || term.includes('язык') || term.includes('репетитор');
+          const isTutor = term.includes('математ') || term.includes('английс') || term.includes('русский') || term.includes('язык') || term.includes('репетитор') || term.includes('школ') || term.includes('музык');
           if (isTutor) Object.assign(mockAnalysis, { category: ServiceCategory.TUTORS });
 
-          const isBeauty = term.includes('маникюр') || term.includes('красота') || term.includes('волос');
+          const isBeauty = term.includes('маникюр') || term.includes('красота') || term.includes('волос') || term.includes('макияж') || term.includes('эпиляц') || term.includes('стилист') || term.includes('косметол');
           if (isBeauty) Object.assign(mockAnalysis, { category: ServiceCategory.BEAUTY });
+
+          const isIT = term.includes('it') || term.includes('фриланс') || term.includes('дизайн') || term.includes('маркет') || term.includes('текст') || term.includes('систем') || term.includes('разработ');
+          if (isIT) Object.assign(mockAnalysis, { category: ServiceCategory.IT });
+
+          const isFinance = term.includes('бухгалт') || term.includes('юрист') || term.includes('риелтор') || term.includes('бизнес') || term.includes('кадров');
+          if (isFinance) Object.assign(mockAnalysis, { category: ServiceCategory.FINANCE });
+
+          const isSport = term.includes('спорт') || term.includes('тренер') || term.includes('фитнес') || term.includes('йога') || term.includes('пилатес') || term.includes('стретч') || term.includes('бокс') || term.includes('плаван');
+          if (isSport) Object.assign(mockAnalysis, { category: ServiceCategory.SPORT });
+
+          const isDomestic = term.includes('домаш') || term.includes('персонал') || term.includes('домработн') || term.includes('водител') || term.includes('нян') || term.includes('сиделк') || term.includes('повар');
+          if (isDomestic) Object.assign(mockAnalysis, { category: ServiceCategory.DOMESTIC });
+
+          const isEvent = term.includes('артист') || term.includes('музыкант') || term.includes('танцор') || term.includes('ведущ') || term.includes('фокус') || term.includes('аниматор');
+          if (isEvent) Object.assign(mockAnalysis, { category: ServiceCategory.EVENTS });
+
+          const isCleaning = term.includes('уборк') || term.includes('клининг');
+          if (isCleaning) Object.assign(mockAnalysis, { category: ServiceCategory.CLEANING });
+
+          const isTransport = term.includes('транспорт') || term.includes('перевозк') || term.includes('груз');
+          if (isTransport) Object.assign(mockAnalysis, { category: ServiceCategory.TRANSPORT });
 
           const matched = matchSpecialists(specialists, {
             category: mockAnalysis.category,
@@ -76,7 +97,8 @@ export const SearchPage: React.FC = () => {
             tags: [term]
           });
 
-          setFilteredSpecialists(matched.length > 0 ? matched : specialists);
+          // FIX: Do not fallback to all specialists if none found for a specific category
+          setFilteredSpecialists(matched);
           setAnalysis(mockAnalysis);
         } else {
           setFilteredSpecialists(specialists.sort((a, b) => b.rating - a.rating));
