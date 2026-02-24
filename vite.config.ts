@@ -7,8 +7,8 @@ export default defineConfig(({ mode }) => {
   // Load env file based on `mode` in the current working directory.
   // Set the third parameter to '' to load all env regardless of the `VITE_` prefix.
   const env = loadEnv(mode, cwd(), '');
-  
-  const apiProxyTarget = env.VITE_API_PROXY_TARGET || 'http://127.0.0.1';
+
+  const apiProxyTarget = env.VITE_API_PROXY_TARGET || 'http://127.0.0.1:8000';
   const wsProxyTarget = env.VITE_WS_PROXY_TARGET || apiProxyTarget;
 
   return {
