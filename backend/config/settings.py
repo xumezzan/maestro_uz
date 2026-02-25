@@ -24,11 +24,11 @@ ALLOW_DEBUG_INACTIVE_LOGIN = env.bool('ALLOW_DEBUG_INACTIVE_LOGIN', default=DEBU
 if DEBUG:
     ALLOWED_HOSTS = env.list(
         'ALLOWED_HOSTS',
-        default=['localhost', '127.0.0.1', '[::1]', 'testserver', '89.167.75.82'],
+        default=['localhost', '127.0.0.1', '[::1]', 'testserver', '192.168.0.53'],
     )
 else:
     # Always include localhost and 127.0.0.1 for internal health checks (Docker containers)
-    ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost', '127.0.0.1'])
+    ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost', '127.0.0.1', '192.168.0.53'])
 
 
 # ---------------------------------------------------------------------------
