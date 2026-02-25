@@ -4,11 +4,20 @@ const CLIENT_EMAIL = 'e2e.client@maestro.test';
 const SPECIALIST_EMAIL = 'e2e.specialist@maestro.test';
 const PASSWORD = 'Password123!';
 
-async function login(page, email, password) {
+async function login(page, email, password, expectedUrlPattern) {
   await page.goto('/#/login');
   await page.getByTestId('login-email').fill(email);
   await page.getByTestId('login-password').fill(password);
+
+  const loginResponsePromise = page.waitForResponse((response) =>
+    response.url().includes('/api/auth/login/') && response.request().method() === 'POST'
+  );
+
   await page.getByTestId('login-submit').click();
+  const loginResponse = await loginResponsePromise;
+  expect(loginResponse.status()).toBe(200);
+
+  await expect(page).toHaveURL(expectedUrlPattern);
 }
 
 async function authedRequest(page, method, path, body = null) {
@@ -42,11 +51,8 @@ test('roles stay isolated across two tabs and chat works both ways', async ({ br
   const clientTab = await context.newPage();
   const specialistTab = await context.newPage();
 
-  await login(clientTab, CLIENT_EMAIL, PASSWORD);
-  await login(specialistTab, SPECIALIST_EMAIL, PASSWORD);
-
-  await expect(clientTab).toHaveURL(/#\/client/);
-  await expect(specialistTab).toHaveURL(/#\/specialist\/dashboard/);
+  await login(clientTab, CLIENT_EMAIL, PASSWORD, /#\/client/);
+  await login(specialistTab, SPECIALIST_EMAIL, PASSWORD, /#\/specialist\/dashboard/);
 
   const clientMe = await authedRequest(clientTab, 'GET', '/api/auth/me/');
   const specialistMe = await authedRequest(specialistTab, 'GET', '/api/auth/me/');

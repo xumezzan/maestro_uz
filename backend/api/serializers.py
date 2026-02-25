@@ -112,6 +112,7 @@ class SpecialistProfileSerializer(serializers.ModelSerializer):
         fields = ['id', 'user', 'name', 'category', 'rating', 'reviews_count', 'location',
                   'price_start', 'avatarUrl', 'description', 'is_verified', 'tags',
                   'passport_image', 'profile_image', 'telegram', 'instagram', 'balance']
+        read_only_fields = ['is_verified']
 
 
 class TaskResponseSerializer(serializers.ModelSerializer):

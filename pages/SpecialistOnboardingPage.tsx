@@ -95,7 +95,6 @@ export const SpecialistOnboardingPage: React.FC = () => {
                 priceStart: parseInt(formData.priceStart) || 0,
                 location: formData.location,
                 tags: formData.tags.length > 0 ? formData.tags : [formData.category],
-                verified: true,
                 passportFile: passportFile || undefined,
                 profileFile: profileFile || undefined
             });
@@ -285,7 +284,7 @@ export const SpecialistOnboardingPage: React.FC = () => {
                             <div className="bg-fiverr-yellow/10 border border-fiverr-yellow/20 p-4 rounded-lg flex gap-3">
                                 <CheckCircle className="w-5 h-5 text-fiverr-yellow flex-shrink-0" />
                                 <p className="text-sm text-fiverr-yellow">
-                                    Чтобы получить значок "Проверен" и доступ к заказам, загрузите фото паспорта и личное фото. Ваши данные в безопасности.
+                                    Фото документов на этом шаге можно пропустить. Профиль создастся без паспорта, а пройти верификацию и получить значок "Проверен" можно позже.
                                 </p>
                             </div>
 

@@ -596,7 +596,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       priceStart: data.priceStart || 0,
       avatarUrl: data.avatarUrl || 'https://ui-avatars.com/api/?name=' + (data.name || 'User'),
       description: data.description || '',
-      verified: true,
+      verified: false,
       tags: data.tags || [],
       lat: coords.lat,
       lng: coords.lng
@@ -629,7 +629,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
       formData.append('email', data.email);
       formData.append('phone', data.phone);
-      formData.append('is_verified', 'true');
 
       if (data.passportFile) {
         formData.append('passport_image', data.passportFile);

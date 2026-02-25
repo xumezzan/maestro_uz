@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { MapPin, Calendar, Clock, Banknote, Filter, X, CheckCircle, Search, SlidersHorizontal, Sparkles, Loader2, Tag, Coins, BarChart2, Star, TrendingUp, Wallet, ArrowUpRight } from 'lucide-react';
 import { Task, TaskStatus, ServiceCategory, AIAnalysisResult, UserRole } from '../types';
@@ -8,11 +8,14 @@ import { analyzeServiceRequest } from '../services/geminiService';
 import api from '../services/api';
 import { useLanguage } from '../context/LanguageContext';
 import { getAccessToken } from '../services/authStorage';
+import { useToast } from '../context/ToastContext';
 
 export const SpecialistDashboard: React.FC = () => {
     const { tasks, currentUser, addResponse, taskResponses } = useAppContext();
     const navigate = useNavigate();
     const { t } = useLanguage();
+    const { addToast } = useToast();
+    const passportInputRef = useRef<HTMLInputElement>(null);
 
     const [activeTab, setActiveTab] = useState<'tasks' | 'analytics'>('tasks');
     const [stats, setStats] = useState<any>(null);
@@ -32,6 +35,7 @@ export const SpecialistDashboard: React.FC = () => {
     const [responsePrice, setResponsePrice] = useState('');
     const [responseMessage, setResponseMessage] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isUploadingVerification, setIsUploadingVerification] = useState(false);
 
     useEffect(() => {
         if (!currentUser) navigate('/login');
@@ -146,6 +150,49 @@ export const SpecialistDashboard: React.FC = () => {
 
     const hasResponded = (taskId: string) => {
         return taskResponses.some(r => r.taskId === taskId && r.specialistId === currentUser.specialistProfile?.id);
+    };
+
+    const resolveSpecialistProfileId = async () => {
+        if (currentUser?.specialistProfile?.id) return currentUser.specialistProfile.id;
+
+        const response = await api.get('/specialists/');
+        const specialists = Array.isArray(response.data) ? response.data : [];
+        const match = specialists.find((specialist: any) => specialist.user?.toString() === currentUser?.id?.toString());
+        return match ? match.id.toString() : null;
+    };
+
+    const handlePassportVerificationUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !currentUser) return;
+
+        if (file.size > 5 * 1024 * 1024) {
+            addToast('Файл слишком большой (макс 5MB)', 'error');
+            e.target.value = '';
+            return;
+        }
+
+        setIsUploadingVerification(true);
+        try {
+            const specialistId = await resolveSpecialistProfileId();
+            if (!specialistId) {
+                throw new Error('Профиль специалиста не найден.');
+            }
+
+            const formData = new FormData();
+            formData.append('passport_image', file);
+
+            await api.patch(`/specialists/${specialistId}/`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+
+            addToast('Паспорт загружен. Заявка отправлена на верификацию.', 'success');
+        } catch (error) {
+            console.error('Verification upload failed', error);
+            addToast('Не удалось отправить паспорт на верификацию.', 'error');
+        } finally {
+            setIsUploadingVerification(false);
+            e.target.value = '';
+        }
     };
 
     return (
@@ -418,9 +465,22 @@ export const SpecialistDashboard: React.FC = () => {
                                 <div className="rounded-2xl p-6 text-white relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #1dbf73 0%, #0e8c56 100%)' }}>
                                     <h3 className="text-xl font-bold mb-2">{t('getMoreOrders') || 'Больше заказов'}</h3>
                                     <p className="text-white/80 mb-4 text-sm">{t('verifyDocsDesc') || 'Подтвердите документы'}</p>
-                                    <button className="w-full bg-white text-fiverr-green font-bold py-2 rounded-lg text-sm hover:bg-white/90 transition-colors">
-                                        {t('getVerified') || 'Подтвердить'}
+                                    <button
+                                        onClick={() => passportInputRef.current?.click()}
+                                        disabled={isUploadingVerification || Boolean(currentUser.specialistProfile?.verified)}
+                                        className="w-full bg-white text-fiverr-green font-bold py-2 rounded-lg text-sm hover:bg-white/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                                    >
+                                        {currentUser.specialistProfile?.verified
+                                            ? (t('verified') || 'Проверен')
+                                            : (isUploadingVerification ? 'Отправка...' : (t('getVerified') || 'Подтвердить'))}
                                     </button>
+                                    <input
+                                        type="file"
+                                        ref={passportInputRef}
+                                        className="hidden"
+                                        accept="image/*"
+                                        onChange={handlePassportVerificationUpload}
+                                    />
                                 </div>
                             )}
 

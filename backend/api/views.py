@@ -66,7 +66,7 @@ class SpecialistViewSet(viewsets.ModelViewSet):
             raise serializers.ValidationError("Профиль специалиста уже создан.")
         if self.request.user.role != User.Role.SPECIALIST:
             raise serializers.ValidationError("Только специалисты могут создать профиль специалиста.")
-        serializer.save(user=self.request.user)
+        serializer.save(user=self.request.user, is_verified=False)
 
     @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated], url_path='my-stats')
     def my_stats(self, request):
